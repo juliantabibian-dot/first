@@ -1,10 +1,150 @@
-import { EmptyState } from '@/components/ui';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { router, useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
+import { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+
+import { Button, Card, ErrorText } from '@/components/ui';
+import { usePhotos, type Photo } from '@/lib/photos';
+import { useTheme } from '@/lib/theme';
+
+const COLUMNS = 3;
+const GAP = 4;
+const PADDING = 16;
+const MAX_WIDTH = 560;
 
 export default function Photos() {
+  const t = useTheme();
+  const { photos, loading, error, refresh, refreshIfStale, setPending } = usePhotos();
+  const [refreshing, setRefreshing] = useState(false);
+  const { width } = useWindowDimensions();
+  const tile = (Math.min(width, MAX_WIDTH) - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
+
+  useFocusEffect(refreshIfStale);
+
+  const pick = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: 20,
+      quality: 1,
+    });
+    if (result.canceled || !result.assets.length) return;
+    setPending(result.assets.map((a) => ({ uri: a.uri, width: a.width, height: a.height })));
+    router.push('/add-photos');
+  }, [setPending]);
+
+  const pullToRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  }, [refresh]);
+
+  const renderTile = useCallback(
+    ({ item }: { item: Photo }) => (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open photo"
+        onPress={() => router.push(`/photo/${item.id}`)}
+        style={{ width: tile, height: tile, backgroundColor: t.line }}>
+        {/* pointerEvents="none" keeps the image itself from being pressed, dragged or saved. */}
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <Image
+            source={item.url ? { uri: item.url, cacheKey: item.storage_path } : null}
+            recyclingKey={item.id}
+            contentFit="cover"
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+        {item.download_policy === 'blocked' ? (
+          <View style={styles.badge}>
+            <SymbolView
+              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+              tintColor="#ffffff"
+              size={12}
+            />
+          </View>
+        ) : null}
+      </Pressable>
+    ),
+    [tile, t.line],
+  );
+
   return (
-    <EmptyState
-      title="No photos yet"
-      body="Uploading from your camera roll is the next thing being built. Photos you add here are the ones your watchers will be texted about."
+    <FlatList
+      style={{ backgroundColor: t.bg }}
+      contentContainerStyle={styles.content}
+      data={photos}
+      keyExtractor={(p) => p.id}
+      numColumns={COLUMNS}
+      columnWrapperStyle={{ gap: GAP }}
+      renderItem={renderTile}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} tintColor={t.muted} />
+      }
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <Button title="＋ Upload from camera roll" onPress={pick} />
+          {error ? (
+            <View style={{ marginTop: 12 }}>
+              <ErrorText>{error}</ErrorText>
+            </View>
+          ) : null}
+          <Text style={[styles.section, { color: t.muted }]}>My photos · {photos.length}</Text>
+        </View>
+      }
+      ListEmptyComponent={
+        loading ? (
+          <ActivityIndicator color={t.muted} style={{ marginTop: 24 }} />
+        ) : error ? undefined : (
+          <Card>
+            <Text style={[styles.empty, { color: t.muted }]}>
+              No photos yet. Upload one to start.
+            </Text>
+          </Card>
+        )
+      }
     />
   );
 }
+
+const styles = StyleSheet.create({
+  content: {
+    padding: PADDING,
+    gap: GAP,
+    width: '100%',
+    maxWidth: MAX_WIDTH,
+    alignSelf: 'center',
+  },
+  header: { marginBottom: 6 },
+  section: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 20,
+    marginLeft: 4,
+  },
+  empty: { fontSize: 14, textAlign: 'center', paddingVertical: 12 },
+  badge: {
+    position: 'absolute',
+    left: 6,
+    bottom: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

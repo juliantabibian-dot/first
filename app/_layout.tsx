@@ -6,6 +6,7 @@ import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { PhotosProvider } from '@/lib/photos';
 import { isConfigured } from '@/lib/supabase';
 
 export { ErrorBoundary } from 'expo-router';
@@ -15,7 +16,9 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootNav />
+      <PhotosProvider>
+        <RootNav />
+      </PhotosProvider>
     </AuthProvider>
   );
 }
@@ -50,6 +53,19 @@ function RootNav() {
           <Stack.Screen
             name="account"
             options={{ presentation: 'modal', headerShown: true, title: 'Account' }}
+          />
+          <Stack.Screen
+            name="add-photos"
+            options={{
+              presentation: 'modal',
+              headerShown: true,
+              title: 'Add photos',
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name="photo/[id]"
+            options={{ presentation: 'fullScreenModal', animation: 'fade' }}
           />
         </Stack.Protected>
       </Stack>
