@@ -5,9 +5,9 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
+import { ConfirmHost } from '@/components/ConfirmHost';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { PhotosProvider } from '@/lib/photos';
-import { isConfigured } from '@/lib/supabase';
 import { WatchersProvider } from '@/lib/watchers';
 
 export { ErrorBoundary } from 'expo-router';
@@ -42,10 +42,7 @@ function RootNav() {
   return (
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!isConfigured}>
-          <Stack.Screen name="setup" />
-        </Stack.Protected>
-        <Stack.Protected guard={isConfigured && !signedIn}>
+        <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && !profile}>
@@ -73,6 +70,7 @@ function RootNav() {
         </Stack.Protected>
       </Stack>
       <StatusBar style="auto" />
+      <ConfirmHost />
     </ThemeProvider>
   );
 }

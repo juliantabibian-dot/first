@@ -39,32 +39,54 @@ Where these differ from the handoff, these win.
 Not built yet: assigning watchers to photos, share, download, delete, screenshot and
 screen-recording alerts. Until delete exists, remove test photos from the Supabase dashboard.
 
-## Run it on your iPhone
+## Try it on your phone
+
+There are two ways, from easiest to most real. Both start in **demo mode**: with no Supabase
+keys the app runs a stand-in backend on the phone itself. You can sign in with any number
+and any 6-digit code, and everything works except that no text is really sent. Codes and
+alerts appear in the Texts tab instead. **Account → Erase the demo** starts over.
+
+### 1. Open the demo link (nothing to install)
+
+The demo is published as a private page on claude.ai. Open its link on your phone while
+signed in to claude.ai, and use **Share → Add to Home Screen** in Safari for an app icon.
+It runs in the browser, so it can't do iPhone-only things (screenshot alerts, later), and
+what you add is stored only in that browser.
+
+To rebuild the page after changing the app: `npm run build:demo-page`. It writes one
+self-contained file, `dist/lookout-demo.html`.
+
+### 2. Run the real app in Expo Go
 
 You need a computer with [Node.js](https://nodejs.org) 20+ and the free **Expo Go** app on
-your phone. Phone and computer must be on the same Wi-Fi.
+your iPhone.
+
+```bash
+npm install
+npm run phone
+```
+
+Scan the QR code with the iPhone camera and the app opens in Expo Go. `npm run phone` uses
+a tunnel, so the phone doesn't need to be on the same Wi-Fi (the first time, it may ask to
+install a small helper; say yes). On the same Wi-Fi, `npx expo start` is a little faster.
+
+### 3. Connect a real backend
+
+When you want real accounts and real texts:
 
 1. **Create the backend.** Make a free project at [supabase.com](https://supabase.com).
    Open **SQL Editor** and run each file in `supabase/migrations/` in order (`0001`, `0002`,
    then `0003`): paste in the whole file, run it, then do the next one. If you set the
    project up before milestone 3, you only need to run `0003`.
 2. **Turn on phone sign-in.** In Supabase go to **Authentication → Sign In / Providers →
-   Phone** and enable it. Real texts need a Twilio account connected there. To try the
-   app before setting up Twilio, add a test number and code under "Test phone numbers
-   and OTPs" on the same page (for example `15555550100=123456`), then sign in with those.
+   Phone** and enable it. Real texts need a Twilio account connected there. To try it
+   before setting up Twilio, add a test number and code under "Test phone numbers and
+   OTPs" on the same page (for example `15555550100=123456`), then sign in with those.
 3. **Connect the app.** Copy `.env.example` to `.env` and fill in the two values from
-   **Project Settings → API**.
-4. **Start it.**
-   ```bash
-   npm install
-   npx expo start
-   ```
-   Scan the QR code with the iPhone camera. The app opens in Expo Go.
-5. **Turn on watchers.** The Watchers tab needs the server functions. Follow steps 1 and 2
+   **Project Settings → API**, then restart with `npx expo start --clear`. The demo
+   notices disappear once the app is connected.
+4. **Turn on watchers.** The Watchers tab needs the server functions. Follow steps 1 and 2
    of [Texting](#texting-twilio) below; Twilio itself can wait.
-
-If the app says it isn't connected to a backend, `.env` is missing or the server needs a
-restart with `npx expo start --clear`.
 
 ## Texting (Twilio)
 
@@ -138,9 +160,12 @@ app/                 screens (Expo Router). _layout.tsx decides which screens yo
   (tabs)/            Photos, Watchers (add, confirm, test, remove), Texts (history)
   add-photos.tsx     after picking: choose the download setting, then upload
   photo/[id].tsx     full-screen viewer
-  account.tsx        sign out
+  account.tsx        sign out (and, in the demo, erase it)
 components/          shared UI
 lib/                 Supabase client, auth state, photo loading and upload, watchers, theme
+  demo.ts            the stand-in backend used when there are no Supabase keys
+scripts/
+  build-demo-page.mjs  builds the demo as one HTML file for the phone link
 supabase/migrations  database schema and row-level security
 supabase/functions   server functions (Deno). One folder per function:
   send-watcher-code    add a watcher / text a new code

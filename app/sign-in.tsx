@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { AuthScreen } from '@/components/AuthScreen';
+import { DemoNotice } from '@/components/DemoNotice';
 import { Button, Card, ErrorText, Field } from '@/components/ui';
 import { formatPhone, toE164 } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
@@ -48,6 +49,10 @@ export default function SignIn() {
     <AuthScreen
       title="Lookout"
       blurb="Pick who watches each photo. If it gets shared, saved or screenshotted, they get a text.">
+      <DemoNotice>
+        Nothing is sent and everything stays on this phone. Use any phone number, and any 6 digits
+        as the code.
+      </DemoNotice>
       <Card>
         {sentTo ? (
           <>

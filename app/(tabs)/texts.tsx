@@ -5,7 +5,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } f
 import { Card, ErrorText } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatPhone } from '@/lib/phone';
-import { supabase } from '@/lib/supabase';
+import { isDemo, supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
 import { ago } from '@/lib/time';
 
@@ -20,7 +20,7 @@ type SentText = {
 };
 
 const STATUS_NOTES: Record<string, string> = {
-  simulated: "Not actually sent — Twilio isn't connected yet",
+  simulated: isDemo ? 'Demo: not actually sent' : "Not actually sent — Twilio isn't connected yet",
   failed: "Couldn't be sent",
 };
 

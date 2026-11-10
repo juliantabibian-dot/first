@@ -4,7 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Platform } from 'react-native';
 
 import { useAuth } from './auth';
-import { supabase } from './supabase';
+import { demoPhotoUri, demoSavePhoto } from './demo';
+import { isDemo, supabase } from './supabase';
 
 /**
  * Chosen once at upload and locked by the database afterwards.
@@ -90,7 +91,12 @@ export function PhotosProvider({ children }: { children: React.ReactNode }) {
     }
 
     const urls = new Map<string, string>();
-    if (rows.length) {
+    if (isDemo) {
+      for (const r of rows) {
+        const uri = demoPhotoUri(r.storage_path);
+        if (uri) urls.set(r.storage_path, uri);
+      }
+    } else if (rows.length) {
       const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrls(
         rows.map((r) => r.storage_path),
         URL_LIFETIME_S,
@@ -129,10 +135,14 @@ export function PhotosProvider({ children }: { children: React.ReactNode }) {
         try {
           const ready = await prepare(picked);
           const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;
-          const upload = await supabase.storage
-            .from(BUCKET)
-            .upload(path, await readBytes(ready.uri), { contentType: 'image/jpeg' });
-          if (upload.error) throw upload.error;
+          if (isDemo) {
+            await demoSavePhoto(path, ready.uri);
+          } else {
+            const upload = await supabase.storage
+              .from(BUCKET)
+              .upload(path, await readBytes(ready.uri), { contentType: 'image/jpeg' });
+            if (upload.error) throw upload.error;
+          }
           const insert = await supabase.from('photos').insert({
             owner_id: userId,
             storage_path: path,

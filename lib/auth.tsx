@@ -2,7 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { isConfigured, supabase } from './supabase';
+import { supabase } from './supabase';
 
 export type Profile = { id: string; name: string };
 
@@ -20,11 +20,10 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [sessionChecked, setSessionChecked] = useState(!isConfigured);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [profileFor, setProfileFor] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isConfigured) return;
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setSessionChecked(true);

@@ -63,7 +63,7 @@ function AddWatcher() {
     setNote({
       kind: 'ok',
       text: result.data.simulated
-        ? `Texting isn't connected yet, so nothing was sent. ${trimmed}'s code is in the Texts tab.`
+        ? `Nothing was really sent. ${trimmed}'s code is in the Texts tab.`
         : `Code texted to ${trimmed}. Ask them for it and enter it below.`,
     });
   }
@@ -154,7 +154,7 @@ function WatcherRow({
       (sent) => {
         setCode('');
         return sent.simulated
-          ? "Texting isn't connected yet. The new code is in the Texts tab."
+          ? 'Nothing was really sent. The new code is in the Texts tab.'
           : `New code texted to ${name}.`;
       },
     );
@@ -164,7 +164,7 @@ function WatcherRow({
       () => sendTest(id),
       (sent) =>
         sent.simulated
-          ? "Texting isn't connected yet. See the test in the Texts tab."
+          ? 'Nothing was really sent. See the test in the Texts tab.'
           : `Test text sent to ${name}.`,
     );
 
