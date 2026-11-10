@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, type ColorValue } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
+import { useWatchers } from '@/lib/watchers';
 
 function initials(name: string) {
   return name
@@ -37,10 +38,12 @@ const icon =
 
 export default function TabLayout() {
   const t = useTheme();
+  const { pendingCount } = useWatchers();
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: t.accent,
+        tabBarBadgeStyle: { backgroundColor: t.danger, color: t.onAccent },
         headerRight: () => <AccountButton />,
       }}>
       <Tabs.Screen
@@ -54,6 +57,8 @@ export default function TabLayout() {
         name="watchers"
         options={{
           title: 'Watchers',
+          // Watchers still waiting for their code to be entered.
+          tabBarBadge: pendingCount || undefined,
           tabBarIcon: icon({ ios: 'eye', android: 'visibility', web: 'visibility' }),
         }}
       />

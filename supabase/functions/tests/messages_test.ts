@@ -94,5 +94,6 @@ Deno.test('the app is never sent internal columns', () => {
     'phone_e164',
     'status',
     'verified_at',
+    'verified_simulated',
   ]);
 });

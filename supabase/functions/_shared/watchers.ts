@@ -36,6 +36,7 @@ export function forApp(w: Watcher) {
     phone_e164: w.phone_e164,
     status: w.status,
     verified_at: w.verified_at,
+    verified_simulated: w.verified_simulated,
     created_at: w.created_at,
   };
 }

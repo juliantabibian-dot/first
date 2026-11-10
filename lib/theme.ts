@@ -12,6 +12,8 @@ const light = {
   onAccent: '#ffffff',
   warn: '#b45309',
   warnSoft: '#fff7e6',
+  ok: '#047857',
+  okSoft: '#e8f8f1',
   danger: '#dc2626',
   dangerSoft: '#fdecec',
 };
@@ -28,6 +30,8 @@ const dark: Palette = {
   onAccent: '#0e0e12',
   warn: '#fbbf24',
   warnSoft: '#3a2c0c',
+  ok: '#34d399',
+  okSoft: '#0f2f25',
   danger: '#f87171',
   dangerSoft: '#3d1818',
 };

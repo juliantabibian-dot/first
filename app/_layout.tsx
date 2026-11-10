@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { PhotosProvider } from '@/lib/photos';
 import { isConfigured } from '@/lib/supabase';
+import { WatchersProvider } from '@/lib/watchers';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -17,7 +18,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PhotosProvider>
-        <RootNav />
+        <WatchersProvider>
+          <RootNav />
+        </WatchersProvider>
       </PhotosProvider>
     </AuthProvider>
   );
