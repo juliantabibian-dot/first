@@ -18,8 +18,12 @@ import { idList, MAX_PHOTOS_PER_CHANGE, planAssignments, type Assignment } from 
 import { MAX_WATCHERS_PER_OWNER } from '@/supabase/functions/_shared/limits';
 import {
   assignedText,
+  BLOCKED_PHOTO,
   codeText,
   confirmedText,
+  eventText,
+  isPhotoEvent,
+  leavesTheApp,
   removedText,
   testText,
   unassignedText,
@@ -474,6 +478,25 @@ function functions(db: Data, name: string, input: any, headers: Headers): Respon
       }
       save();
       return reply({ added, removed });
+    }
+
+    case 'report-event': {
+      const type = input?.type;
+      if (!isPhotoEvent(type)) return refuse(400, "That request wasn't understood.");
+      const photo = db.photos.find(
+        (p) => p.id === input?.photo_id && p.owner_id === userId && p.deleted_at == null,
+      );
+      if (!photo) return refuse(404, "That photo isn't in your library anymore.");
+      if (leavesTheApp(type) && photo.download_policy === 'blocked') return refuse(403, BLOCKED_PHOTO);
+      const assigned = db.photo_watchers.filter((a) => a.photo_id === photo.id).map((a) => a.watcher_id);
+      const tell = mine.filter((w) => w.status === 'verified' && assigned.includes(w.id));
+      if (type === 'delete') {
+        photo.deleted_at = now();
+        db.photo_watchers = db.photo_watchers.filter((a) => a.photo_id !== photo.id);
+      }
+      for (const watcher of tell) addText(db, userId, watcher, eventText(owner, type));
+      save();
+      return reply({ texted: tell.length });
     }
 
     case 'remove-watcher': {

@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 
 import { useAuth } from './auth';
 import { demoPhotoUri, demoSavePhoto } from './demo';
+import { flushUnreportedEvents } from './events';
 import { isDemo, supabase } from './supabase';
 import { callFunction, type Result } from './watchers';
 
@@ -90,6 +91,8 @@ export function PhotosProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     if (!userId) return;
+    // Alerts that couldn't be sent while offline go out as soon as the app loads again.
+    flushUnreportedEvents();
     const { data: rows, error: rowsError } = await supabase
       .from('photos')
       .select('id, storage_path, created_at, download_policy, width, height')

@@ -18,7 +18,9 @@ Where these differ from the handoff, these win.
 | Audience | Friends sharing private photos |
 | Downloads | Chosen per photo at upload: allowed (watchers are texted) or blocked. It can't be changed afterwards; the database enforces that. |
 | Sharing | Through the iPhone share sheet, like sharing from the camera roll. No in-app sharing between Lookout users, so there are no "shared with me" photos. |
-| Screen recording | Triggers an alert, same as a screenshot |
+| Screenshots and recording | Blanked by iOS while photos are on screen. A screenshot in the viewer also texts the watchers. Recording can't be detected yet, only blanked. |
+| Blocked photos | Can't be downloaded or shared (the share sheet can save too) |
+| Failed download or share | Nobody is texted |
 
 ## Status
 
@@ -45,11 +47,21 @@ Where these differ from the handoff, these win.
   in the Texts tab as "not actually sent". Real texts start once the Twilio account is
   upgraded. Phone sign-in has the same limit; until then a test number and code are set
   in Supabase (Authentication → Phone).
-- **Next, milestone 5:** the alerts themselves: share, download, delete, screenshot and
-  screen recording.
+- **Milestone 5, alerts: done.** In the viewer: Share (iPhone share sheet), Download (to
+  the camera roll) and Delete, plus screenshot detection. Each one texts that photo's
+  watchers. A photo uploaded with downloads blocked offers neither Share nor Download,
+  because the share sheet can also save. If a download or share fails or is cancelled,
+  nobody is texted. If the phone is offline when something happens, the alert is kept and
+  sent the next time the app loads.
+- **Screenshots and recordings.** While photos are on screen (the grid and the viewer) iOS
+  blanks the app out of screenshots and screen recordings, and the app switcher preview is
+  blurred. A screenshot in the viewer still texts the watchers. Screen recording can't be
+  detected with the tools available in Expo Go, so it is blanked but not alerted.
+- **Next:** offering to delete the camera-roll originals after upload, and in-app account
+  deletion (Apple requires it).
 
-Not built yet: those alerts, blur in the app switcher, deleting camera-roll originals, and
-account deletion. Until delete exists, remove test photos from the Supabase dashboard.
+Not checked on a real iPhone yet: the share sheet, saving to the camera roll, screenshot
+blanking and screenshot alerts. They need a phone; the demo only simulates them.
 
 ## Try it on your phone
 
@@ -133,7 +145,7 @@ texts and can wait.
    ```bash
    npx supabase login
    npx supabase functions deploy --remote=YOUR-PROJECT-REF --use-api --yes \
-     send-watcher-code verify-watcher-code send-test-text remove-watcher set-photo-watchers
+     send-watcher-code verify-watcher-code send-test-text remove-watcher set-photo-watchers report-event
    npx supabase functions deploy --remote=YOUR-PROJECT-REF --use-api --yes --no-verify-jwt twilio-inbound
    ```
    `YOUR-PROJECT-REF` is the random-looking part of your project's address
@@ -205,6 +217,7 @@ supabase/functions   server functions (Deno). One folder per function:
   send-test-text       "alerts are working" text to a confirmed watcher
   remove-watcher       text a confirmed watcher that they were removed, then delete them
   set-photo-watchers   set who watches photos; texts anyone added or removed
+  report-event         a photo was shared, downloaded, screenshotted or deleted: text its watchers
   twilio-inbound       Twilio calls this when a watcher replies STOP or START
   _shared/             code they share: sending and logging texts, codes, limits, wording
   tests/               unit tests for the shared logic

@@ -12,14 +12,14 @@ const OPTIONS: { value: DownloadPolicy; title: string; body: (many: boolean) => 
     value: 'alert',
     title: 'Allow downloads',
     body: (many) =>
-      `${many ? 'They' : 'It'} can be saved to the camera roll from Lookout. ${
+      `${many ? 'They' : 'It'} can be shared or saved to the camera roll from Lookout. ${
         many ? 'Their' : 'Its'
       } watchers get a text every time.`,
   },
   {
     value: 'blocked',
     title: 'Block downloads',
-    body: (many) => `${many ? 'They' : 'It'} can never be saved out of Lookout.`,
+    body: (many) => `${many ? 'They' : 'It'} can never be saved or shared out of Lookout.`,
   },
 ];
 

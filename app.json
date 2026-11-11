@@ -38,6 +38,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Lookout saves a photo to your camera roll when you tap Download, and tells that photo's watchers."
+        }
       ]
     ],
     "experiments": {

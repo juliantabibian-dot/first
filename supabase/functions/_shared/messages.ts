@@ -33,3 +33,29 @@ export function unassignedText(owner: string, photoCount: number): string {
   const one = photoCount === 1;
   return `Lookout alert: ${owner} removed you as a watcher on ${one ? 'a photo' : `${photoCount} photos`}. You won't be told about ${one ? 'it' : 'them'} anymore.`;
 }
+
+/** Things that can happen to a photo that its watchers are told about. */
+export const PHOTO_EVENTS = ['share', 'download', 'screenshot', 'screen_record', 'delete'] as const;
+export type PhotoEvent = (typeof PHOTO_EVENTS)[number];
+
+export function isPhotoEvent(value: unknown): value is PhotoEvent {
+  return typeof value === 'string' && (PHOTO_EVENTS as readonly string[]).includes(value);
+}
+
+/** Sharing and downloading both take a copy out of the app, so a blocked photo allows neither. */
+export function leavesTheApp(event: PhotoEvent): boolean {
+  return event === 'share' || event === 'download';
+}
+
+export const BLOCKED_PHOTO = "This photo can't be saved or shared out of Lookout.";
+
+export function eventText(owner: string, event: PhotoEvent): string {
+  const what: Record<PhotoEvent, string> = {
+    share: `${owner} shared a photo you're watching. It may now be outside the app.`,
+    download: `${owner} downloaded a photo you're watching. It's now saved outside the app.`,
+    screenshot: `${owner} took a screenshot while viewing a photo you're watching.`,
+    screen_record: `${owner} recorded their screen while viewing a photo you're watching.`,
+    delete: `${owner} deleted a photo you were watching.`,
+  };
+  return `Lookout alert: ${what[event]}`;
+}

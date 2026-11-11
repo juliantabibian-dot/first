@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { ConfirmHost } from '@/components/ConfirmHost';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { useAppSwitcherBlur } from '@/lib/capture';
 import { PhotosProvider } from '@/lib/photos';
 import { WatchersProvider } from '@/lib/watchers';
 
@@ -29,6 +30,7 @@ export default function RootLayout() {
 function RootNav() {
   const scheme = useColorScheme();
   const { loading, session, profile } = useAuth();
+  useAppSwitcherBlur();
 
   useEffect(() => {
     if (!loading) SplashScreen.hideAsync();

@@ -26,7 +26,10 @@ export type Watcher = {
 };
 
 /** What a server function answered: its data, or a sentence to show as is. */
-export type Result<T> = { ok: true; data: T } | { ok: false; error: string };
+export type Result<T> =
+  | { ok: true; data: T }
+  /** `network` is true when the server couldn't be reached at all. */
+  | { ok: false; error: string; network?: boolean };
 
 /** `simulated` is true while Twilio isn't connected: the text was only logged. */
 type Sent = { simulated: boolean };
@@ -69,7 +72,11 @@ export async function callFunction<T>(name: string, body: Record<string, unknown
       };
     }
   }
-  return { ok: false, error: "Couldn't reach Lookout. Check your connection and try again." };
+  return {
+    ok: false,
+    error: "Couldn't reach Lookout. Check your connection and try again.",
+    network: !(error instanceof FunctionsHttpError),
+  };
 }
 
 export function WatchersProvider({ children }: { children: React.ReactNode }) {

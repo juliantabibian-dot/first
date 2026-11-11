@@ -64,3 +64,27 @@ Deno.test('assignment texts match the agreed wording', () => {
     "Lookout alert: Julian removed you as a watcher on 2 photos. You won't be told about them anymore.",
   );
 });
+
+Deno.test('alert texts for things that happen to a photo', async () => {
+  const { BLOCKED_PHOTO, eventText, isPhotoEvent, leavesTheApp } = await import('../_shared/messages.ts');
+  assertEquals(
+    eventText('Julian', 'download'),
+    "Lookout alert: Julian downloaded a photo you're watching. It's now saved outside the app.",
+  );
+  assertEquals(
+    eventText('Julian', 'share'),
+    "Lookout alert: Julian shared a photo you're watching. It may now be outside the app.",
+  );
+  assertEquals(
+    eventText('Julian', 'screenshot'),
+    "Lookout alert: Julian took a screenshot while viewing a photo you're watching.",
+  );
+  assertEquals(eventText('Julian', 'delete'), 'Lookout alert: Julian deleted a photo you were watching.');
+  assertEquals(isPhotoEvent('download'), true);
+  assertEquals(isPhotoEvent('watcher_added'), false);
+  assertEquals(isPhotoEvent(null), false);
+  // A blocked photo may be neither saved nor shared; it can still be screenshotted or deleted.
+  assertEquals([leavesTheApp('share'), leavesTheApp('download')], [true, true]);
+  assertEquals([leavesTheApp('screenshot'), leavesTheApp('delete')], [false, false]);
+  assertEquals(BLOCKED_PHOTO.includes("can't be saved or shared"), true);
+});

@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { Button, Card, ErrorText } from '@/components/ui';
+import { usePhotoShield } from '@/lib/capture';
 import { usePhotos, type Photo } from '@/lib/photos';
 import { useWatchers } from '@/lib/watchers';
 import { useTheme } from '@/lib/theme';
@@ -33,6 +34,7 @@ export default function Photos() {
   const tile = (Math.min(width, MAX_WIDTH) - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
 
   useFocusEffect(refreshIfStale);
+  usePhotoShield('photo-grid');
 
   const pick = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
