@@ -57,11 +57,16 @@ Where these differ from the handoff, these win.
   blanks the app out of screenshots and screen recordings, and the app switcher preview is
   blurred. A screenshot in the viewer still texts the watchers. Screen recording can't be
   detected with the tools available in Expo Go, so it is blanked but not alerted.
-- **Next:** offering to delete the camera-roll originals after upload, and in-app account
-  deletion (Apple requires it).
+- **Milestone 6, safety: done.** After choosing photos you can tick "Delete the originals
+  from my camera roll" (iPhone only; iOS asks to confirm). **Account → Delete account**
+  removes everything and texts confirmed watchers once. The Account screen says plainly
+  what Lookout can't prevent, such as photographing the screen with another phone.
+- **Next, store readiness:** an app icon, a hosted privacy policy (draft in
+  `docs/privacy-policy.md`), then the launch steps: Apple developer program, an App Store
+  build, upgrading Twilio and registering the number.
 
-Not checked on a real iPhone yet: the share sheet, saving to the camera roll, screenshot
-blanking and screenshot alerts. They need a phone; the demo only simulates them.
+Not checked on a real iPhone yet: the share sheet, saving to the camera roll, deleting
+originals, screenshot blanking and screenshot alerts. They need a phone; the demo only simulates them.
 
 ## Try it on your phone
 
@@ -145,7 +150,7 @@ texts and can wait.
    ```bash
    npx supabase login
    npx supabase functions deploy --remote=YOUR-PROJECT-REF --use-api --yes \
-     send-watcher-code verify-watcher-code send-test-text remove-watcher set-photo-watchers report-event
+     send-watcher-code verify-watcher-code send-test-text remove-watcher set-photo-watchers report-event delete-account
    npx supabase functions deploy --remote=YOUR-PROJECT-REF --use-api --yes --no-verify-jwt twilio-inbound
    ```
    `YOUR-PROJECT-REF` is the random-looking part of your project's address
@@ -218,6 +223,7 @@ supabase/functions   server functions (Deno). One folder per function:
   remove-watcher       text a confirmed watcher that they were removed, then delete them
   set-photo-watchers   set who watches photos; texts anyone added or removed
   report-event         a photo was shared, downloaded, screenshotted or deleted: text its watchers
+  delete-account       text confirmed watchers, then delete the account and everything in it
   twilio-inbound       Twilio calls this when a watcher replies STOP or START
   _shared/             code they share: sending and logging texts, codes, limits, wording
   tests/               unit tests for the shared logic

@@ -29,7 +29,13 @@ export type Photo = {
 };
 
 /** A photo picked from the camera roll that hasn't been uploaded yet. */
-export type PickedPhoto = { uri: string; width: number; height: number };
+export type PickedPhoto = {
+  uri: string;
+  width: number;
+  height: number;
+  /** The camera roll's id for this photo, when the picker provides one. */
+  assetId?: string | null;
+};
 
 /** `failed` holds the picks that still need uploading, so a retry never duplicates photos. */
 type UploadResult = { added: number; addedIds: string[]; failed: PickedPhoto[] };
@@ -65,7 +71,7 @@ const MAX_SIDE = 1600;
 const PhotosContext = createContext<PhotosState | null>(null);
 
 /** Shrink to at most 1600px and re-encode as JPEG, which also drops location and other EXIF data. */
-async function prepare(photo: PickedPhoto): Promise<PickedPhoto> {
+async function prepare(photo: PickedPhoto): Promise<{ uri: string; width: number; height: number }> {
   const context = ImageManipulator.manipulate(photo.uri);
   if (Math.max(photo.width, photo.height) > MAX_SIDE) {
     context.resize(photo.width >= photo.height ? { width: MAX_SIDE } : { height: MAX_SIDE });

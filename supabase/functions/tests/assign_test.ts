@@ -88,3 +88,11 @@ Deno.test('alert texts for things that happen to a photo', async () => {
   assertEquals([leavesTheApp('screenshot'), leavesTheApp('delete')], [false, false]);
   assertEquals(BLOCKED_PHOTO.includes("can't be saved or shared"), true);
 });
+
+Deno.test('account deletion text', async () => {
+  const { accountDeletedText } = await import('../_shared/messages.ts');
+  assertEquals(
+    accountDeletedText('Julian'),
+    "Lookout alert: Julian deleted their Lookout account, including the photos you were watching. You won't get alerts from them anymore.",
+  );
+});

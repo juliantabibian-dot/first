@@ -1,6 +1,6 @@
 import { File, Paths } from 'expo-file-system';
 import { Asset, requestPermissionsAsync } from 'expo-media-library';
-import { Share } from 'react-native';
+import { Platform, Share } from 'react-native';
 
 // Taking a photo out of the app on a phone. The web build has its own version.
 
@@ -49,5 +49,24 @@ export async function shareOut(id: string, url: string): Promise<'shared' | 'can
     }
   } catch {
     return 'failed';
+  }
+}
+
+/** Deleting the camera-roll originals after an upload is offered on iPhone only for now. */
+export const CAN_DELETE_ORIGINALS = Platform.OS === 'ios';
+
+/**
+ * Deletes photos from the camera roll by the ids the picker gave us. iOS shows
+ * its own "Allow Lookout to delete N photos?" prompt; saying no there counts as 'kept'.
+ */
+export async function deleteOriginals(assetIds: string[]): Promise<'deleted' | 'kept'> {
+  try {
+    const permission = await requestPermissionsAsync(false);
+    if (!permission.granted) return 'kept';
+    // The library wants "ph://<id>"; the picker hands back the bare id.
+    await Asset.delete(assetIds.map((id) => new Asset(id.startsWith('ph://') ? id : `ph://${id}`)));
+    return 'deleted';
+  } catch {
+    return 'kept';
   }
 }

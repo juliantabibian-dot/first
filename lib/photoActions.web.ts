@@ -10,3 +10,9 @@ export async function saveToCameraRoll(_id: string, _url: string): Promise<'save
 export async function shareOut(_id: string, _url: string): Promise<'shared' | 'cancelled' | 'failed'> {
   return 'shared';
 }
+
+export const CAN_DELETE_ORIGINALS = false;
+
+export async function deleteOriginals(_assetIds: string[]): Promise<'deleted' | 'kept'> {
+  return 'kept';
+}

@@ -44,7 +44,14 @@ export default function Photos() {
       quality: 1,
     });
     if (result.canceled || !result.assets.length) return;
-    setPending(result.assets.map((a) => ({ uri: a.uri, width: a.width, height: a.height })));
+    setPending(
+      result.assets.map((a) => ({
+        uri: a.uri,
+        width: a.width,
+        height: a.height,
+        assetId: a.assetId ?? null,
+      })),
+    );
     router.push('/add-photos');
   }, [setPending]);
 

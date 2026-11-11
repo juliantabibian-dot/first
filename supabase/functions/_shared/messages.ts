@@ -59,3 +59,8 @@ export function eventText(owner: string, event: PhotoEvent): string {
   };
   return `Lookout alert: ${what[event]}`;
 }
+
+/** Sent to every confirmed watcher when the owner deletes their whole account. */
+export function accountDeletedText(owner: string): string {
+  return `Lookout alert: ${owner} deleted their Lookout account, including the photos you were watching. You won't get alerts from them anymore.`;
+}

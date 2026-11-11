@@ -14,7 +14,7 @@ import { useWatchers } from '@/lib/watchers';
  */
 export default function PhotoWatchers() {
   const t = useTheme();
-  const { ids } = useLocalSearchParams<{ ids: string }>();
+  const { ids, kept } = useLocalSearchParams<{ ids: string; kept?: string }>();
   const { photos, loading, setWatchers } = usePhotos();
   const { watchers } = useWatchers();
 
@@ -52,6 +52,13 @@ export default function PhotoWatchers() {
 
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={styles.content}>
+      {kept ? (
+        <View style={[styles.kept, { backgroundColor: t.warnSoft }]}>
+          <Text style={[styles.keptText, { color: t.warn }]}>
+            The originals weren't deleted, so they are still in your camera roll.
+          </Text>
+        </View>
+      ) : null}
       <Text style={[styles.heading, { color: t.ink }]}>
         Who watches {many ? `these ${photoIds.length} photos` : 'this photo'}?
       </Text>
@@ -127,6 +134,8 @@ export default function PhotoWatchers() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  kept: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 },
+  keptText: { fontSize: 14, lineHeight: 20 },
   heading: { fontSize: 20, fontWeight: '700' },
   sub: { fontSize: 14, lineHeight: 20, marginTop: 4 },
   list: { gap: 10, marginTop: 16, marginBottom: 16 },
