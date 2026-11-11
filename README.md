@@ -33,6 +33,10 @@ Where these differ from the handoff, these win.
   confirmed watcher is texted that they were removed). If a watcher replies STOP they are
   marked opted out and not texted again unless they reply START. The Texts tab lists every text sent. Until
   Twilio is connected, texts are only simulated (see [Texting](#texting-twilio)).
+- **Backend: set up.** A Supabase project has the three migrations applied and the five
+  functions deployed (checked: they start, and refuse callers who aren't signed in). Still
+  to do there: connect Twilio, which phone sign-in and real texts both need. The app keeps
+  running as the demo until `.env` points it at the project.
 - **Next, milestone 4:** choosing which watchers watch each photo, with texts when they
   are added or removed.
 
@@ -103,9 +107,9 @@ texts and can wait.
 2. **Put the functions on Supabase.** In a terminal, in this folder:
    ```bash
    npx supabase login
-   npx supabase link --project-ref YOUR-PROJECT-REF
-   npx supabase functions deploy
-   npx supabase functions deploy twilio-inbound --no-verify-jwt
+   npx supabase functions deploy --remote=YOUR-PROJECT-REF --use-api --yes \
+     send-watcher-code verify-watcher-code send-test-text remove-watcher
+   npx supabase functions deploy --remote=YOUR-PROJECT-REF --use-api --yes --no-verify-jwt twilio-inbound
    ```
    `YOUR-PROJECT-REF` is the random-looking part of your project's address
    (`https://YOUR-PROJECT-REF.supabase.co`). The last line matters: `twilio-inbound` is
@@ -126,6 +130,8 @@ texts and can wait.
    ```bash
    npx supabase secrets set TWILIO_ACCOUNT_SID=ACxxxxxxxx TWILIO_AUTH_TOKEN=xxxxxxxx TWILIO_FROM_NUMBER=+15551234567
    ```
+   (Or, without a terminal: in the Supabase dashboard open **Edge Functions → Secrets** and
+   add the three by name there.)
    `TWILIO_FROM_NUMBER` is your Twilio number, starting with `+` and the country code. All
    three must be set; from that moment texts are real and codes are no longer shown in the
    app.
