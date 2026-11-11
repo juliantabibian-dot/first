@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { usePhotos } from '@/lib/photos';
+import { useWatchers } from '@/lib/watchers';
 import { ago } from '@/lib/time';
 
 /**
@@ -16,11 +17,21 @@ import { ago } from '@/lib/time';
 export default function PhotoViewer() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { photos, loading } = usePhotos();
+  const { watchers } = useWatchers();
   const photo = photos.find((p) => p.id === id);
 
   if (!photo) return loading ? <View style={styles.screen} /> : <Redirect href="/" />;
 
   const blocked = photo.download_policy === 'blocked';
+  // Only confirmed watchers are texted.
+  const names = watchers
+    .filter((w) => w.status === 'verified' && photo.watcherIds.includes(w.id))
+    .map((w) => w.name);
+  const watching = names.length
+    ? `If anything happens to this photo, ${
+        names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+      } ${names.length === 1 ? 'gets' : 'get'} a text.`
+    : 'No one is watching this photo.';
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -53,6 +64,22 @@ export default function PhotoViewer() {
         />
       </View>
 
+      <Text style={styles.watching}>{watching}</Text>
+      <View style={styles.actions}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Watchers"
+          onPress={() => router.push({ pathname: '/photo-watchers', params: { ids: photo.id } })}
+          style={({ pressed }) => [styles.action, { opacity: pressed ? 0.6 : 1 }]}>
+          <SymbolView
+            name={{ ios: 'eye', android: 'visibility', web: 'visibility' }}
+            tintColor="#ffffff"
+            size={22}
+          />
+          <Text style={styles.actionLabel}>Watchers</Text>
+        </Pressable>
+      </View>
+
       <View style={styles.footer}>
         <SymbolView
           name={
@@ -78,11 +105,16 @@ const styles = StyleSheet.create({
   title: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
   meta: { color: '#aaaaaa', fontSize: 13 },
   picture: { flex: 1, marginHorizontal: 8 },
+  watching: { color: '#dddddd', fontSize: 14, lineHeight: 20, textAlign: 'center', paddingHorizontal: 24, paddingTop: 12 },
+  actions: { flexDirection: 'row', justifyContent: 'center', paddingTop: 12 },
+  action: { alignItems: 'center', gap: 4, minWidth: 72, paddingVertical: 6 },
+  actionLabel: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     padding: 16,
+    paddingTop: 8,
   },
 });

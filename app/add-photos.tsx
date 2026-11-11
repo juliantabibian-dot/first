@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorText } from '@/components/ui';
@@ -31,7 +31,12 @@ export default function AddPhotos() {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState('');
 
-  if (!pending.length) return <Redirect href="/" />;
+  /** Ids uploaded so far, kept across a retry of a partly failed batch. */
+  const uploadedIds = useRef<string[]>([]);
+  /** Set once this screen is handing over to the watcher picker. */
+  const leaving = useRef(false);
+
+  if (!pending.length) return leaving.current ? null : <Redirect href="/" />;
 
   const many = pending.length > 1;
   const busy = progress !== null;
@@ -40,13 +45,15 @@ export default function AddPhotos() {
     if (!policy) return;
     setError('');
     setProgress({ done: 0, total: pending.length });
-    const { added, failed } = await uploadPending(policy, (done, total) =>
+    const { added, addedIds, failed } = await uploadPending(policy, (done, total) =>
       setProgress({ done, total }),
     );
     setProgress(null);
+    uploadedIds.current.push(...addedIds);
     if (!failed.length) {
-      // Leave first: clearing `pending` while this screen is up would trigger the redirect above.
-      router.back();
+      // Straight on to "Who watches these photos?" for everything just uploaded.
+      leaving.current = true;
+      router.replace({ pathname: '/photo-watchers', params: { ids: uploadedIds.current.join(',') } });
       setPending([]);
       return;
     }
@@ -88,7 +95,8 @@ export default function AddPhotos() {
             <Pressable
               key={option.value}
               accessibilityRole="radio"
-              accessibilityState={{ selected, disabled: busy }}
+              aria-checked={selected}
+              accessibilityState={{ selected, checked: selected, disabled: busy }}
               accessibilityLabel={option.title}
               disabled={busy}
               onPress={() => setPolicy(option.value)}

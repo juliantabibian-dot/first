@@ -37,11 +37,19 @@ Where these differ from the handoff, these win.
   functions deployed (checked: they start, and refuse callers who aren't signed in), and
   Twilio connected for phone sign-in and texts. The version published to Expo uses it;
   local runs stay in demo mode unless `.env` points them at the project.
-- **Next, milestone 4:** choosing which watchers watch each photo, with texts when they
-  are added or removed.
+- **Milestone 4, watchers per photo: done.** After an upload the app asks who watches the
+  new photos; the viewer shows who gets a text and has a Watchers button to change it.
+  Anyone added or removed is texted. Photo tiles show the watcher count.
+- **Texting on a Twilio trial.** Trial accounts can only send Twilio's sample messages, so
+  the functions detect a trial and behave as if Twilio weren't connected: texts are logged
+  in the Texts tab as "not actually sent". Real texts start once the Twilio account is
+  upgraded. Phone sign-in has the same limit; until then a test number and code are set
+  in Supabase (Authentication → Phone).
+- **Next, milestone 5:** the alerts themselves: share, download, delete, screenshot and
+  screen recording.
 
-Not built yet: assigning watchers to photos, share, download, delete, screenshot and
-screen-recording alerts. Until delete exists, remove test photos from the Supabase dashboard.
+Not built yet: those alerts, blur in the app switcher, deleting camera-roll originals, and
+account deletion. Until delete exists, remove test photos from the Supabase dashboard.
 
 ## Try it on your phone
 
@@ -125,7 +133,7 @@ texts and can wait.
    ```bash
    npx supabase login
    npx supabase functions deploy --remote=YOUR-PROJECT-REF --use-api --yes \
-     send-watcher-code verify-watcher-code send-test-text remove-watcher
+     send-watcher-code verify-watcher-code send-test-text remove-watcher set-photo-watchers
    npx supabase functions deploy --remote=YOUR-PROJECT-REF --use-api --yes --no-verify-jwt twilio-inbound
    ```
    `YOUR-PROJECT-REF` is the random-looking part of your project's address
@@ -182,6 +190,7 @@ app/                 screens (Expo Router). _layout.tsx decides which screens yo
   welcome.tsx        first sign-in: your name
   (tabs)/            Photos, Watchers (add, confirm, test, remove), Texts (history)
   add-photos.tsx     after picking: choose the download setting, then upload
+  photo-watchers.tsx choose who watches one photo or a fresh batch
   photo/[id].tsx     full-screen viewer
   account.tsx        sign out (and, in the demo, erase it)
 components/          shared UI
@@ -195,6 +204,7 @@ supabase/functions   server functions (Deno). One folder per function:
   verify-watcher-code  check the code and confirm the watcher
   send-test-text       "alerts are working" text to a confirmed watcher
   remove-watcher       text a confirmed watcher that they were removed, then delete them
+  set-photo-watchers   set who watches photos; texts anyone added or removed
   twilio-inbound       Twilio calls this when a watcher replies STOP or START
   _shared/             code they share: sending and logging texts, codes, limits, wording
   tests/               unit tests for the shared logic

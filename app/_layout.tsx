@@ -64,6 +64,10 @@ function RootNav() {
             }}
           />
           <Stack.Screen
+            name="photo-watchers"
+            options={{ presentation: 'modal', headerShown: true, title: 'Watchers' }}
+          />
+          <Stack.Screen
             name="photo/[id]"
             options={{ presentation: 'fullScreenModal', animation: 'fade' }}
           />

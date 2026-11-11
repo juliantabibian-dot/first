@@ -20,7 +20,7 @@ type SentText = {
 };
 
 const STATUS_NOTES: Record<string, string> = {
-  simulated: isDemo ? 'Demo: not actually sent' : "Not actually sent — Twilio isn't connected yet",
+  simulated: isDemo ? 'Demo: not actually sent' : "Not actually sent — real texting isn't switched on yet",
   failed: "Couldn't be sent",
 };
 

@@ -13,6 +13,7 @@ import {
 import { Button, Card, ErrorText, Field } from '@/components/ui';
 import { confirmDestructive } from '@/lib/confirm';
 import { formatPhone, toE164 } from '@/lib/phone';
+import { usePhotos } from '@/lib/photos';
 import { useTheme } from '@/lib/theme';
 import { useWatchers, type Watcher } from '@/lib/watchers';
 
@@ -117,6 +118,8 @@ function WatcherRow({
 }) {
   const t = useTheme();
   const { confirm, resendCode, sendTest, remove } = useWatchers();
+  const { photos, refresh: refreshPhotos } = usePhotos();
+  const watchingCount = photos.filter((p) => p.watcherIds.includes(watcher.id)).length;
   const [code, setCode] = useState('');
   /** Which button's request is in flight; every button in the row is disabled meanwhile. */
   const [busy, setBusy] = useState<'confirm' | 'resend' | 'test' | 'remove' | null>(null);
@@ -172,7 +175,9 @@ function WatcherRow({
     const agreed = await confirmDestructive(
       `Remove ${name}?`,
       status === 'verified'
-        ? `${name} will get a text saying you removed them as a watcher.`
+        ? `${name} will get a text saying you removed them as a watcher${
+            watchingCount ? ` on ${watchingCount} ${watchingCount === 1 ? 'photo' : 'photos'}` : ''
+          }.`
         : status === 'pending'
           ? "They haven't confirmed, so they won't be texted about it."
           : "They opted out of texts, so they won't be texted about it.",
@@ -183,6 +188,7 @@ function WatcherRow({
       'remove',
       () => remove(id),
       ({ texted }) => {
+        refreshPhotos();
         onRemoved(texted ? `${name} was removed and got a text about it.` : `${name} was removed.`);
         return null;
       },
@@ -206,7 +212,12 @@ function WatcherRow({
             <Text style={[styles.pillText, { color: t[pill.fg] }]}>{pill.label}</Text>
           </View>
         </View>
-        <Text style={[styles.phone, { color: t.muted }]}>{formatPhone(watcher.phone_e164)}</Text>
+        <Text style={[styles.phone, { color: t.muted }]}>
+          {formatPhone(watcher.phone_e164)}
+          {status === 'verified'
+            ? ` · watching ${watchingCount} ${watchingCount === 1 ? 'photo' : 'photos'}`
+            : ''}
+        </Text>
 
         {status === 'opted_out' ? (
           <Text style={[styles.explain, { color: t.muted }]}>

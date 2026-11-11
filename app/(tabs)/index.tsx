@@ -16,6 +16,7 @@ import {
 
 import { Button, Card, ErrorText } from '@/components/ui';
 import { usePhotos, type Photo } from '@/lib/photos';
+import { useWatchers } from '@/lib/watchers';
 import { useTheme } from '@/lib/theme';
 
 const COLUMNS = 3;
@@ -26,6 +27,7 @@ const MAX_WIDTH = 560;
 export default function Photos() {
   const t = useTheme();
   const { photos, loading, error, refresh, refreshIfStale, setPending } = usePhotos();
+  const { watchers } = useWatchers();
   const [refreshing, setRefreshing] = useState(false);
   const { width } = useWindowDimensions();
   const tile = (Math.min(width, MAX_WIDTH) - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
@@ -50,8 +52,14 @@ export default function Photos() {
     setRefreshing(false);
   }, [refresh]);
 
+  const hasConfirmed = watchers.some((w) => w.status === 'verified');
+
   const renderTile = useCallback(
-    ({ item }: { item: Photo }) => (
+    ({ item }: { item: Photo }) => {
+      const count = watchers.filter(
+        (w) => w.status === 'verified' && item.watcherIds.includes(w.id),
+      ).length;
+      return (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open photo"
@@ -66,6 +74,16 @@ export default function Photos() {
             style={StyleSheet.absoluteFill}
           />
         </View>
+        <View style={[styles.tag, !count && { backgroundColor: 'rgba(180,83,9,0.9)' }]}>
+          {count ? (
+            <SymbolView
+              name={{ ios: 'eye.fill', android: 'visibility', web: 'visibility' }}
+              tintColor="#ffffff"
+              size={12}
+            />
+          ) : null}
+          <Text style={styles.tagText}>{count ? count : 'No watchers'}</Text>
+        </View>
         {item.download_policy === 'blocked' ? (
           <View style={styles.badge}>
             <SymbolView
@@ -76,8 +94,9 @@ export default function Photos() {
           </View>
         ) : null}
       </Pressable>
-    ),
-    [tile, t.line],
+      );
+    },
+    [tile, t.line, watchers],
   );
 
   return (
@@ -94,6 +113,15 @@ export default function Photos() {
       }
       ListHeaderComponent={
         <View style={styles.header}>
+          {hasConfirmed ? null : (
+            <View style={[styles.banner, { backgroundColor: t.warnSoft }]}>
+              <Text style={[styles.bannerTitle, { color: t.warn }]}>Add a watcher first</Text>
+              <Text style={[styles.bannerBody, { color: t.warn }]}>
+                On the Watchers tab, add someone's phone number and confirm it with the code they
+                get. Then you can choose them for your photos.
+              </Text>
+            </View>
+          )}
           <Button title="＋ Upload from camera roll" onPress={pick} />
           {error ? (
             <View style={{ marginTop: 12 }}>
@@ -136,9 +164,25 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   empty: { fontSize: 14, textAlign: 'center', paddingVertical: 12 },
-  badge: {
+  banner: { borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12 },
+  bannerTitle: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  bannerBody: { fontSize: 14, lineHeight: 20 },
+  tag: {
     position: 'absolute',
     left: 6,
+    bottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  tagText: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
+  badge: {
+    position: 'absolute',
+    right: 6,
     bottom: 6,
     width: 22,
     height: 22,
