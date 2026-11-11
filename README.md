@@ -33,10 +33,10 @@ Where these differ from the handoff, these win.
   confirmed watcher is texted that they were removed). If a watcher replies STOP they are
   marked opted out and not texted again unless they reply START. The Texts tab lists every text sent. Until
   Twilio is connected, texts are only simulated (see [Texting](#texting-twilio)).
-- **Backend: set up.** A Supabase project has the three migrations applied and the five
-  functions deployed (checked: they start, and refuse callers who aren't signed in). Still
-  to do there: connect Twilio, which phone sign-in and real texts both need. The app keeps
-  running as the demo until `.env` points it at the project.
+- **Backend: set up.** A Supabase project has the three migrations applied, the five
+  functions deployed (checked: they start, and refuse callers who aren't signed in), and
+  Twilio connected for phone sign-in and texts. The version published to Expo uses it;
+  local runs stay in demo mode unless `.env` points them at the project.
 - **Next, milestone 4:** choosing which watchers watch each photo, with texts when they
   are added or removed.
 
@@ -74,7 +74,24 @@ Scan the QR code with the iPhone camera and the app opens in Expo Go. `npm run p
 a tunnel, so the phone doesn't need to be on the same Wi-Fi (the first time, it may ask to
 install a small helper; say yes). On the same Wi-Fi, `npx expo start` is a little faster.
 
-### 3. Connect a real backend
+### 3. Open the published app in Expo Go (real backend, no computer)
+
+The app is published to the Expo project `@jetabs-team/jet`, connected to the real Supabase
+backend. On the iPhone, install **Expo Go**, sign in with the Expo account, and open the
+project from the **Projects** list (branch `main`). Sign-in here sends a real text through
+Twilio; on a Twilio trial, only numbers verified in the Twilio console can receive it.
+
+To publish a new version after changing the app (needs `EXPO_TOKEN` set to an Expo access
+token):
+
+```bash
+npm run publish:phone -- --message "what changed"
+```
+
+The backend address and public key it is built with are stored on the Expo project
+(**Environment variables → production**), not in this repo.
+
+### 4. Connect a real backend to a local run
 
 When you want real accounts and real texts:
 

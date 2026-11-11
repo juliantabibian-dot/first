@@ -17,6 +17,7 @@
     "expo-splash-screen": "~58.0.13",
     "expo-status-bar": "~58.0.4",
     "expo-symbols": "~58.0.4",
+    "expo-updates": "~58.0.21",
     "expo-web-browser": "~58.0.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -38,7 +39,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "phone": "expo start --tunnel",
-    "build:demo-page": "node scripts/build-demo-page.mjs"
+    "build:demo-page": "node scripts/build-demo-page.mjs",
+    "publish:phone": "npx eas-cli@latest update --branch main --environment production --platform ios"
   },
   "private": true
 }
