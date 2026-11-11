@@ -7,6 +7,7 @@ import {
   twilioFailureMessage,
   twilioMode,
   twilioSignature,
+  effectiveTwilioMode,
 } from '../_shared/twilio.ts';
 
 // The worked example from Twilio's "Validating Requests" documentation.
@@ -132,4 +133,35 @@ Deno.test('Twilio error codes become plain sentences', () => {
   assertEquals(twilioFailureMessage(21211), twilioFailureMessage(21614));
   assertEquals(twilioFailureMessage(null), "The text couldn't be sent. Try again in a minute.");
   assertEquals(twilioFailureMessage(99999), twilioFailureMessage(null));
+});
+
+Deno.test('a trial Twilio account is treated as simulated; a full one is live', async () => {
+  const env = (sid: string) => (name: string) =>
+    ({ TWILIO_ACCOUNT_SID: sid, TWILIO_AUTH_TOKEN: 'token', TWILIO_FROM_NUMBER: '+15550001111' })[name];
+  assertEquals((await effectiveTwilioMode(env('ACtrial'), () => Promise.resolve(true), 1)).kind, 'simulated');
+  assertEquals((await effectiveTwilioMode(env('ACfull'), () => Promise.resolve(false), 1)).kind, 'live');
+});
+
+Deno.test('if Twilio cannot be asked, codes stay hidden (treated as a full account)', async () => {
+  const env = (name: string) =>
+    ({ TWILIO_ACCOUNT_SID: 'ACunknown', TWILIO_AUTH_TOKEN: 'token', TWILIO_FROM_NUMBER: '+15550001111' })[name];
+  assertEquals((await effectiveTwilioMode(env, () => Promise.resolve(null), 1)).kind, 'live');
+});
+
+Deno.test('the trial check is remembered for a few minutes, then asked again', async () => {
+  const env = (name: string) =>
+    ({ TWILIO_ACCOUNT_SID: 'ACcache', TWILIO_AUTH_TOKEN: 'token', TWILIO_FROM_NUMBER: '+15550001111' })[name];
+  let asked = 0;
+  const lookup = () => Promise.resolve(++asked === 1);
+  assertEquals((await effectiveTwilioMode(env, lookup, 1_000)).kind, 'simulated');
+  assertEquals((await effectiveTwilioMode(env, lookup, 60_000)).kind, 'simulated');
+  assertEquals(asked, 1);
+  assertEquals((await effectiveTwilioMode(env, lookup, 1_000 + 6 * 60_000)).kind, 'live');
+  assertEquals(asked, 2);
+});
+
+Deno.test('without all three secrets Twilio is never asked', async () => {
+  const lookup = () => Promise.reject(new Error('must not be called'));
+  assertEquals((await effectiveTwilioMode(() => undefined, lookup)).kind, 'simulated');
+  assertEquals((await effectiveTwilioMode((n) => (n === 'TWILIO_AUTH_TOKEN' ? 'x' : undefined), lookup)).kind, 'misconfigured');
 });

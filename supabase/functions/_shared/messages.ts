@@ -21,3 +21,15 @@ export function removedText(owner: string, photoCount: number): string {
   const scope = photoCount > 0 ? ` on ${photos}` : '';
   return `Lookout alert: ${owner} removed you as a watcher${scope}. You won't get alerts from them anymore.`;
 }
+
+/** Sent when someone is chosen to watch one or more photos. */
+export function assignedText(owner: string, photoCount: number): string {
+  const one = photoCount === 1;
+  return `Lookout: ${owner} made you a watcher on ${one ? 'a photo' : `${photoCount} photos`}. You'll get a text if ${one ? "it's" : 'any of them is'} shared, downloaded or screenshotted.`;
+}
+
+/** Sent when someone is taken off one or more photos but stays on the watcher list. */
+export function unassignedText(owner: string, photoCount: number): string {
+  const one = photoCount === 1;
+  return `Lookout alert: ${owner} removed you as a watcher on ${one ? 'a photo' : `${photoCount} photos`}. You won't be told about ${one ? 'it' : 'them'} anymore.`;
+}

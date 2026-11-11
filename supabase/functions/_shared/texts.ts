@@ -1,5 +1,5 @@
 import { must, rows, type Db } from './db.ts';
-import { sendViaTwilio, twilioFailureMessage, twilioMode } from './twilio.ts';
+import { effectiveTwilioMode, sendViaTwilio, twilioFailureMessage } from './twilio.ts';
 import type { Watcher } from './watchers.ts';
 
 export type TextOutcome =
@@ -25,7 +25,7 @@ type TextRequest = {
 /** The one place a text is sent from. Every text is logged to `texts` before it goes out. */
 export async function sendText(db: Db, request: TextRequest): Promise<TextOutcome> {
   const { watcher } = request;
-  const mode = twilioMode((name) => Deno.env.get(name));
+  const mode = await effectiveTwilioMode((name) => Deno.env.get(name));
 
   if (watcher.status === 'opted_out') {
     return { status: 'skipped', message: `${watcher.name} replied STOP, so Lookout can't text them.` };
@@ -46,13 +46,14 @@ export async function sendText(db: Db, request: TextRequest): Promise<TextOutcom
   };
 
   if (mode.kind === 'simulated') {
-    // SIMULATED MODE ONLY. Twilio is not connected, so nothing leaves the
-    // server and the Texts tab is the only place this message exists. It is
+    // SIMULATED MODE ONLY. No text can leave the server (Twilio is not
+    // connected, or the account is a free trial that can't send Lookout's
+    // texts), so the Texts tab is the only place this message exists. It is
     // stored exactly as it would have been sent, INCLUDING a real code, so the
-    // owner can finish the flow while trying the app out. twilioMode() returns
-    // 'simulated' only while all three Twilio secrets are absent, so this
-    // branch cannot run once any of them is set. Watchers confirmed this way
-    // are flagged (verified_simulated) and are never sent a real text.
+    // owner can finish the flow while trying the app out. See
+    // effectiveTwilioMode() for when this applies; an app user can't trigger
+    // it. Watchers confirmed this way are flagged (verified_simulated) and are
+    // never sent a real text.
     must(await db.from('texts').insert({ ...row, body: request.body, status: 'simulated' }));
     return { status: 'simulated' };
   }

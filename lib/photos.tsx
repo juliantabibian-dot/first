@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import { useAuth } from './auth';
 import { demoPhotoUri, demoSavePhoto } from './demo';
 import { isDemo, supabase } from './supabase';
+import { callFunction, type Result } from './watchers';
 
 /**
  * Chosen once at upload and locked by the database afterwards.
@@ -22,13 +23,15 @@ export type Photo = {
   height: number | null;
   /** Short-lived signed URL; null if it couldn't be created. */
   url: string | null;
+  /** Ids of the watchers assigned to this photo. */
+  watcherIds: string[];
 };
 
 /** A photo picked from the camera roll that hasn't been uploaded yet. */
 export type PickedPhoto = { uri: string; width: number; height: number };
 
 /** `failed` holds the picks that still need uploading, so a retry never duplicates photos. */
-type UploadResult = { added: number; failed: PickedPhoto[] };
+type UploadResult = { added: number; addedIds: string[]; failed: PickedPhoto[] };
 
 type PhotosState = {
   photos: Photo[];
@@ -43,6 +46,14 @@ type PhotosState = {
     policy: DownloadPolicy,
     onProgress: (done: number, total: number) => void,
   ) => Promise<UploadResult>;
+  /**
+   * Makes exactly these watchers watch each of these photos. The server texts
+   * anyone added or removed; the result says how many people were texted.
+   */
+  setWatchers: (
+    photoIds: string[],
+    watcherIds: string[],
+  ) => Promise<Result<{ added: number; removed: number }>>;
 };
 
 const BUCKET = 'photos';
@@ -106,7 +117,20 @@ export function PhotosProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    setPhotos(rows.map((r) => ({ ...r, url: urls.get(r.storage_path) ?? null })));
+    // Row-level security returns only assignments of the caller's own watchers.
+    const { data: assigned } = await supabase.from('photo_watchers').select('photo_id, watcher_id');
+    const watching = new Map<string, string[]>();
+    for (const a of assigned ?? []) {
+      watching.set(a.photo_id, [...(watching.get(a.photo_id) ?? []), a.watcher_id]);
+    }
+
+    setPhotos(
+      rows.map((r) => ({
+        ...r,
+        url: urls.get(r.storage_path) ?? null,
+        watcherIds: watching.get(r.id) ?? [],
+      })),
+    );
     setError(null);
     setLoading(false);
     loadedAt.current = Date.now();
@@ -127,8 +151,8 @@ export function PhotosProvider({ children }: { children: React.ReactNode }) {
 
   const uploadPending = useCallback(
     async (policy: DownloadPolicy, onProgress: (done: number, total: number) => void) => {
-      const result: UploadResult = { added: 0, failed: [] };
-      if (!userId) return { added: 0, failed: pending };
+      const result: UploadResult = { added: 0, addedIds: [], failed: [] };
+      if (!userId) return { added: 0, addedIds: [], failed: pending };
 
       for (const [index, picked] of pending.entries()) {
         onProgress(index, pending.length);
@@ -143,14 +167,19 @@ export function PhotosProvider({ children }: { children: React.ReactNode }) {
               .upload(path, await readBytes(ready.uri), { contentType: 'image/jpeg' });
             if (upload.error) throw upload.error;
           }
-          const insert = await supabase.from('photos').insert({
-            owner_id: userId,
-            storage_path: path,
-            download_policy: policy,
-            width: ready.width,
-            height: ready.height,
-          });
+          const insert = await supabase
+            .from('photos')
+            .insert({
+              owner_id: userId,
+              storage_path: path,
+              download_policy: policy,
+              width: ready.width,
+              height: ready.height,
+            })
+            .select('id')
+            .single();
           if (insert.error) throw insert.error;
+          result.addedIds.push(insert.data.id);
           result.added += 1;
         } catch {
           result.failed.push(picked);
@@ -163,9 +192,31 @@ export function PhotosProvider({ children }: { children: React.ReactNode }) {
     [pending, refresh, userId],
   );
 
+  const setWatchers = useCallback(
+    async (photoIds: string[], watcherIds: string[]) => {
+      const result = await callFunction<{ added: number; removed: number }>('set-photo-watchers', {
+        photo_ids: photoIds,
+        watcher_ids: watcherIds,
+      });
+      await refresh();
+      return result;
+    },
+    [refresh],
+  );
+
   const value = useMemo<PhotosState>(
-    () => ({ photos, loading, error, refresh, refreshIfStale, pending, setPending, uploadPending }),
-    [photos, loading, error, refresh, refreshIfStale, pending, uploadPending],
+    () => ({
+      photos,
+      loading,
+      error,
+      refresh,
+      refreshIfStale,
+      pending,
+      setPending,
+      uploadPending,
+      setWatchers,
+    }),
+    [photos, loading, error, refresh, refreshIfStale, pending, uploadPending, setWatchers],
   );
 
   return <PhotosContext.Provider value={value}>{children}</PhotosContext.Provider>;

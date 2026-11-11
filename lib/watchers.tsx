@@ -50,7 +50,7 @@ const WatchersContext = createContext<WatchersState | null>(null);
  * The app can only read watchers. Every change goes through a server function,
  * because the server is what texts the watcher about it.
  */
-async function callFunction<T>(name: string, body: Record<string, unknown>): Promise<Result<T>> {
+export async function callFunction<T>(name: string, body: Record<string, unknown>): Promise<Result<T>> {
   const { data, error } = await supabase.functions.invoke(name, { body });
   if (!error) return { ok: true, data };
   // On a non-2xx answer the error's `context` is the Response; our functions

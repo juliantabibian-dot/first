@@ -7,7 +7,7 @@ import { Refusal } from '../_shared/http.ts';
 import { MAX_WATCHERS_PER_OWNER } from '../_shared/limits.ts';
 import { codeText, MASKED_CODE } from '../_shared/messages.ts';
 import { sendText } from '../_shared/texts.ts';
-import { twilioMode } from '../_shared/twilio.ts';
+import { effectiveTwilioMode } from '../_shared/twilio.ts';
 import { forApp, parseNewWatcher, type Watcher } from '../_shared/watchers.ts';
 
 const UNIQUE_VIOLATION = '23505';
@@ -71,7 +71,7 @@ serveForUser(async ({ db, userId, input }) => {
       expires_at: new Date(now + CODE_LIFETIME_MS).toISOString(),
       attempts: 0,
       sent_at: new Date(now).toISOString(),
-      simulated: twilioMode((name) => Deno.env.get(name)).kind === 'simulated',
+      simulated: (await effectiveTwilioMode((name) => Deno.env.get(name))).kind === 'simulated',
     }),
   );
 

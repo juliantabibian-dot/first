@@ -11,9 +11,8 @@ export type TwilioMode =
 const SECRETS = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER'] as const;
 
 /**
- * Simulated mode needs ALL three secrets to be absent. As soon as any one of
- * them exists the answer is 'live' or 'misconfigured', never 'simulated',
- * because simulated mode shows codes to the owner (see texts.ts).
+ * What the secrets alone say. With no secrets at all the answer is 'simulated';
+ * as soon as any one of them exists it is 'live' or 'misconfigured'.
  */
 export function twilioMode(env: (name: string) => string | undefined): TwilioMode {
   const [accountSid, authToken, from] = SECRETS.map((name) => (env(name) ?? '').trim());
@@ -22,10 +21,59 @@ export function twilioMode(env: (name: string) => string | undefined): TwilioMod
   return { kind: 'misconfigured' };
 }
 
+type Live = Extract<TwilioMode, { kind: 'live' }>;
+
+/**
+ * Asks Twilio whether the account is a free trial. Returns null if Twilio
+ * can't be asked, in which case the caller must assume it is NOT a trial.
+ */
+export async function isTrialAccount(mode: Live): Promise<boolean | null> {
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(mode.accountSid)}.json`;
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: 'Basic ' + btoa(`${mode.accountSid}:${mode.authToken}`) },
+      signal: AbortSignal.timeout(5_000),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || typeof data?.type !== 'string') return null;
+    return data.type.toLowerCase() === 'trial';
+  } catch {
+    return null;
+  }
+}
+
+const TRIAL_CHECK_TTL_MS = 5 * 60 * 1000;
+let trialCheck: { sid: string; at: number; trial: boolean } | null = null;
+
+/**
+ * The mode texts are actually sent in. Simulated mode shows codes to the owner
+ * (see texts.ts), so it applies in exactly two situations, neither of which an
+ * app user can bring about:
+ *   - no Twilio secrets are set at all, or
+ *   - the Twilio account is a free trial. Trial accounts can only send Twilio's
+ *     own sample messages, so no Lookout text could reach anyone anyway.
+ * If Twilio can't be asked, the account is treated as a full one: codes stay
+ * hidden and the send is attempted.
+ */
+export async function effectiveTwilioMode(
+  env: (name: string) => string | undefined,
+  lookup: (mode: Live) => Promise<boolean | null> = isTrialAccount,
+  now = Date.now(),
+): Promise<TwilioMode> {
+  const mode = twilioMode(env);
+  if (mode.kind !== 'live') return mode;
+  if (!trialCheck || trialCheck.sid !== mode.accountSid || now - trialCheck.at > TRIAL_CHECK_TTL_MS) {
+    const trial = await lookup(mode);
+    if (trial === null) return mode;
+    trialCheck = { sid: mode.accountSid, at: now, trial };
+  }
+  return trialCheck.trial ? { kind: 'simulated' } : mode;
+}
+
 export type TwilioResult = { ok: true; sid: string } | { ok: false; code: number | null };
 
 export async function sendViaTwilio(
-  mode: Extract<TwilioMode, { kind: 'live' }>,
+  mode: Live,
   to: string,
   body: string,
 ): Promise<TwilioResult> {

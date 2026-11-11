@@ -14,12 +14,15 @@ import {
   normalizeCode,
   wrongCodeMessage,
 } from '@/supabase/functions/_shared/codes';
+import { idList, MAX_PHOTOS_PER_CHANGE, planAssignments, type Assignment } from '@/supabase/functions/_shared/assign';
 import { MAX_WATCHERS_PER_OWNER } from '@/supabase/functions/_shared/limits';
 import {
+  assignedText,
   codeText,
   confirmedText,
   removedText,
   testText,
+  unassignedText,
 } from '@/supabase/functions/_shared/messages';
 import { parseNewWatcher } from '@/supabase/functions/_shared/watchers';
 
@@ -38,13 +41,14 @@ type Data = {
   watchers: Row[];
   texts: Row[];
   codes: Code[];
+  photo_watchers: Assignment[];
 };
 
 const KEY = 'lookout-demo-v1';
 const TABLES = ['profiles', 'photos', 'watchers', 'texts'] as const;
 type Table = (typeof TABLES)[number];
 
-const empty = (): Data => ({ users: {}, profiles: [], photos: [], watchers: [], texts: [], codes: [] });
+const empty = (): Data => ({ users: {}, profiles: [], photos: [], watchers: [], texts: [], codes: [], photo_watchers: [] });
 
 let data: Data | null = null;
 let loading: Promise<Data> | null = null;
@@ -272,6 +276,12 @@ function rest(
 ): Response {
   const userId = callerId(headers);
   if (!userId) return reply({ message: 'Not signed in' }, 401);
+  if (table === 'photo_watchers') {
+    // Read-only for the app, and only for the caller's own watchers.
+    if (method !== 'GET') return reply({ message: 'Not available in the demo' }, 405);
+    const mine = new Set(db.watchers.filter((w) => w.owner_id === userId).map((w) => w.id));
+    return reply(db.photo_watchers.filter((a) => mine.has(a.watcher_id)));
+  }
   if (!TABLES.includes(table as Table)) return reply({ message: 'Unknown table' }, 404);
   const name = table as Table;
 
@@ -424,11 +434,55 @@ function functions(db: Data, name: string, input: any, headers: Headers): Respon
       return reply({ simulated: true });
     }
 
+    case 'set-photo-watchers': {
+      const photoIds = idList(input?.photo_ids, 1, MAX_PHOTOS_PER_CHANGE);
+      const wanted = idList(input?.watcher_ids, 0, MAX_WATCHERS_PER_OWNER);
+      if (!photoIds || !wanted) return refuse(400, "That request wasn't understood.");
+      const photos = db.photos.filter((p) => p.owner_id === userId && p.deleted_at == null);
+      if (!photoIds.every((id) => photos.some((p) => p.id === id))) {
+        return refuse(404, "One of those photos isn't in your library anymore.");
+      }
+      const change = planAssignments(
+        photoIds,
+        db.photo_watchers.filter((a) => photoIds.includes(a.photo_id)),
+        wanted,
+      );
+      for (const id of wanted) {
+        const watcher = mine.find((w) => w.id === id);
+        if (!watcher) return refuse(404, "One of those watchers isn't on your list anymore.");
+        if (change.added.has(id) && watcher.status !== 'verified') {
+          return refuse(409, `${watcher.name} hasn't confirmed their number, so they can't watch photos yet.`);
+        }
+      }
+      const gone_ = new Set(change.remove.map((a) => `${a.photo_id}/${a.watcher_id}`));
+      db.photo_watchers = db.photo_watchers
+        .filter((a) => !gone_.has(`${a.photo_id}/${a.watcher_id}`))
+        .concat(change.add);
+      let added = 0;
+      let removed = 0;
+      for (const [id, count] of change.added) {
+        const watcher = mine.find((w) => w.id === id);
+        if (watcher?.status !== 'verified') continue;
+        addText(db, userId, watcher, assignedText(owner, count));
+        added += 1;
+      }
+      for (const [id, count] of change.removed) {
+        const watcher = mine.find((w) => w.id === id);
+        if (watcher?.status !== 'verified') continue;
+        addText(db, userId, watcher, unassignedText(owner, count));
+        removed += 1;
+      }
+      save();
+      return reply({ added, removed });
+    }
+
     case 'remove-watcher': {
       const watcher = find();
       if (!watcher) return gone();
       const texted = watcher.status === 'verified';
-      if (texted) addText(db, userId, watcher, removedText(owner, 0));
+      const watching = db.photo_watchers.filter((a) => a.watcher_id === watcher.id).length;
+      if (texted) addText(db, userId, watcher, removedText(owner, watching));
+      db.photo_watchers = db.photo_watchers.filter((a) => a.watcher_id !== watcher.id);
       db.watchers = db.watchers.filter((w) => w.id !== watcher.id);
       db.codes = db.codes.filter((c) => c.watcher_id !== watcher.id);
       save();
