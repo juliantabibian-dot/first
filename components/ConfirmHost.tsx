@@ -28,7 +28,7 @@ export function ConfirmHost() {
         onPress={() => answer(false)}>
         <Pressable
           accessibilityRole="alert"
-          style={[styles.box, { backgroundColor: t.card, borderColor: t.line }]}
+          style={[styles.box, { backgroundColor: t.bg, borderColor: t.line }]}
           onPress={() => {}}>
           <Text style={[styles.title, { color: t.ink }]}>{request?.title}</Text>
           <Text style={[styles.message, { color: t.muted }]}>{request?.message}</Text>
@@ -54,8 +54,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  box: { width: '100%', maxWidth: 360, borderRadius: 18, borderWidth: 1, padding: 20 },
-  title: { fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  box: { width: '100%', maxWidth: 340, borderRadius: 14, borderWidth: 0.5, padding: 20 },
+  title: { fontSize: 17, fontWeight: '600', marginBottom: 6 },
   message: { fontSize: 15, lineHeight: 21, marginBottom: 18 },
   buttons: { flexDirection: 'row', gap: 10 },
   flex: { flex: 1 },

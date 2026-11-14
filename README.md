@@ -61,7 +61,10 @@ Where these differ from the handoff, these win.
   from my camera roll" (iPhone only; iOS asks to confirm). **Account → Delete account**
   removes everything and texts confirmed watchers once. The Account screen says plainly
   what Lookout can't prevent, such as photographing the screen with another phone.
-- **App icon: done** (white eye on indigo, in `assets/images/`).
+- **Visual design.** Black and white so the photos carry the color; green is used only to
+  mean "someone is watching". Large left-aligned titles, an edge-to-edge photo grid, and
+  plain lists with hairlines. The palette and type scale live in `lib/theme.ts`, shared
+  pieces in `components/ui.tsx`. The app icon is a white eye on black (`assets/images/`).
 - **Next, store readiness:** a hosted privacy policy (draft in
   `docs/privacy-policy.md`), then the launch steps: Apple developer program, an App Store
   build, upgrading Twilio and registering the number.

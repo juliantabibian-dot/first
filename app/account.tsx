@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { DemoNotice } from '@/components/DemoNotice';
-import { Button, Card, ErrorText } from '@/components/ui';
+import { Button, ErrorText, SectionLabel } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { confirmDestructive } from '@/lib/confirm';
 import { resetDemo } from '@/lib/demo';
 import { formatPhone } from '@/lib/phone';
 import { isDemo } from '@/lib/supabase';
-import { useTheme } from '@/lib/theme';
+import { type, useTheme } from '@/lib/theme';
 import { callFunction, useWatchers } from '@/lib/watchers';
 
 const LIMITS = [
@@ -62,22 +62,23 @@ export default function Account() {
 
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={styles.content}>
-      <Text style={[styles.name, { color: t.ink }]}>{profile?.name}</Text>
-      {phone ? <Text style={[styles.phone, { color: t.muted }]}>{formatPhone(phone)}</Text> : null}
-      <DemoNotice>
-        This copy of Lookout isn't connected to a server. Nothing is texted to anyone, and
-        everything you add is kept only on this phone.
-      </DemoNotice>
+      <Text style={[type.title, { color: t.ink }]}>{profile?.name}</Text>
+      {phone ? (
+        <Text style={[type.callout, styles.phone, { color: t.muted }]}>{formatPhone(phone)}</Text>
+      ) : null}
+      <View style={styles.demo}>
+        <DemoNotice>
+          This copy of Lookout isn't connected to a server. Nothing is texted to anyone, and
+          everything you add is kept only on this phone.
+        </DemoNotice>
+      </View>
 
-      <Card>
-        <Text style={[styles.cardTitle, { color: t.ink }]}>What Lookout can and can't do</Text>
-        {LIMITS.map((line) => (
-          <View key={line} style={styles.limit}>
-            <Text style={[styles.bullet, { color: t.muted }]}>•</Text>
-            <Text style={[styles.limitText, { color: t.muted }]}>{line}</Text>
-          </View>
-        ))}
-      </Card>
+      <SectionLabel>What Lookout can and can't do</SectionLabel>
+      {LIMITS.map((line) => (
+        <Text key={line} style={[type.callout, styles.limit, { color: t.muted }]}>
+          {line}
+        </Text>
+      ))}
 
       <View style={styles.buttons}>
         <Button title="Sign out" variant="ghost" onPress={signOut} disabled={busy !== null} />
@@ -107,12 +108,9 @@ export default function Account() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, width: '100%', maxWidth: 560, alignSelf: 'center' },
-  name: { fontSize: 22, fontWeight: '700' },
-  phone: { fontSize: 15, marginTop: 2, marginBottom: 20 },
-  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
-  limit: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  bullet: { fontSize: 14, lineHeight: 20 },
-  limitText: { flex: 1, fontSize: 14, lineHeight: 20 },
-  buttons: { gap: 8, marginTop: 16 },
+  content: { padding: 20, paddingBottom: 32, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  phone: { marginTop: 2, fontVariant: ['tabular-nums'] },
+  demo: { marginTop: 20, marginBottom: -24 },
+  limit: { marginBottom: 10 },
+  buttons: { gap: 10, marginTop: 22 },
 });

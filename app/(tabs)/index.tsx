@@ -14,16 +14,16 @@ import {
   View,
 } from 'react-native';
 
-import { Button, Card, ErrorText } from '@/components/ui';
+import { AccountButton } from '@/components/AccountButton';
+import { Button, ErrorText, ScreenHeader, TextButton } from '@/components/ui';
 import { usePhotoShield } from '@/lib/capture';
 import { usePhotos, type Photo } from '@/lib/photos';
+import { type, useTheme } from '@/lib/theme';
 import { useWatchers } from '@/lib/watchers';
-import { useTheme } from '@/lib/theme';
 
 const COLUMNS = 3;
-const GAP = 4;
-const PADDING = 16;
-const MAX_WIDTH = 560;
+const GAP = 2;
+const MAX_WIDTH = 720;
 
 export default function Photos() {
   const t = useTheme();
@@ -31,7 +31,7 @@ export default function Photos() {
   const { watchers } = useWatchers();
   const [refreshing, setRefreshing] = useState(false);
   const { width } = useWindowDimensions();
-  const tile = (Math.min(width, MAX_WIDTH) - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
+  const tile = (Math.min(width, MAX_WIDTH) - GAP * (COLUMNS - 1)) / COLUMNS;
 
   useFocusEffect(refreshIfStale);
   usePhotoShield('photo-grid');
@@ -69,134 +69,152 @@ export default function Photos() {
         (w) => w.status === 'verified' && item.watcherIds.includes(w.id),
       ).length;
       return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Open photo"
-        onPress={() => router.push(`/photo/${item.id}`)}
-        style={{ width: tile, height: tile, backgroundColor: t.line }}>
-        {/* pointerEvents="none" keeps the image itself from being pressed, dragged or saved. */}
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          <Image
-            source={item.url ? { uri: item.url, cacheKey: item.storage_path } : null}
-            recyclingKey={item.id}
-            contentFit="cover"
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
-        <View style={[styles.tag, !count && { backgroundColor: 'rgba(180,83,9,0.9)' }]}>
-          {count ? (
-            <SymbolView
-              name={{ ios: 'eye.fill', android: 'visibility', web: 'visibility' }}
-              tintColor="#ffffff"
-              size={12}
-            />
-          ) : null}
-          <Text style={styles.tagText}>{count ? count : 'No watchers'}</Text>
-        </View>
-        {item.download_policy === 'blocked' ? (
-          <View style={styles.badge}>
-            <SymbolView
-              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
-              tintColor="#ffffff"
-              size={12}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open photo"
+          onPress={() => router.push(`/photo/${item.id}`)}
+          style={{ width: tile, height: tile, backgroundColor: t.fill }}>
+          {/* pointerEvents="none" keeps the image itself from being pressed, dragged or saved. */}
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Image
+              source={item.url ? { uri: item.url, cacheKey: item.storage_path } : null}
+              recyclingKey={item.id}
+              contentFit="cover"
+              style={StyleSheet.absoluteFill}
             />
           </View>
-        ) : null}
-      </Pressable>
-      );
-    },
-    [tile, t.line, watchers],
-  );
-
-  return (
-    <FlatList
-      style={{ backgroundColor: t.bg }}
-      contentContainerStyle={styles.content}
-      data={photos}
-      keyExtractor={(p) => p.id}
-      numColumns={COLUMNS}
-      columnWrapperStyle={{ gap: GAP }}
-      renderItem={renderTile}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} tintColor={t.muted} />
-      }
-      ListHeaderComponent={
-        <View style={styles.header}>
-          {hasConfirmed ? null : (
-            <View style={[styles.banner, { backgroundColor: t.warnSoft }]}>
-              <Text style={[styles.bannerTitle, { color: t.warn }]}>Add a watcher first</Text>
-              <Text style={[styles.bannerBody, { color: t.warn }]}>
-                On the Watchers tab, add someone's phone number and confirm it with the code they
-                get. Then you can choose them for your photos.
-              </Text>
-            </View>
-          )}
-          <Button title="＋ Upload from camera roll" onPress={pick} />
-          {error ? (
-            <View style={{ marginTop: 12 }}>
-              <ErrorText>{error}</ErrorText>
+          <View style={styles.tag}>
+            {count ? (
+              <SymbolView
+                name={{ ios: 'eye.fill', android: 'visibility', web: 'visibility' }}
+                tintColor="#ffffff"
+                size={12}
+              />
+            ) : null}
+            <Text style={styles.tagText}>{count ? count : 'No watchers'}</Text>
+          </View>
+          {item.download_policy === 'blocked' ? (
+            <View style={styles.lock}>
+              <SymbolView
+                name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+                tintColor="#ffffff"
+                size={11}
+              />
             </View>
           ) : null}
-          <Text style={[styles.section, { color: t.muted }]}>My photos · {photos.length}</Text>
-        </View>
-      }
-      ListEmptyComponent={
-        loading ? (
-          <ActivityIndicator color={t.muted} style={{ marginTop: 24 }} />
-        ) : error ? undefined : (
-          <Card>
-            <Text style={[styles.empty, { color: t.muted }]}>
-              No photos yet. Upload one to start.
-            </Text>
-          </Card>
-        )
-      }
-    />
+        </Pressable>
+      );
+    },
+    [tile, t.fill, watchers],
+  );
+
+  const subtitle = loading
+    ? undefined
+    : photos.length
+      ? `${photos.length} ${photos.length === 1 ? 'photo' : 'photos'}`
+      : 'No photos yet';
+
+  return (
+    <View style={[styles.screen, { backgroundColor: t.bg }]}>
+      <ScreenHeader
+        title="Photos"
+        subtitle={subtitle}
+        right={
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Upload from camera roll"
+              hitSlop={8}
+              onPress={pick}
+              style={({ pressed }) => [
+                styles.add,
+                { backgroundColor: t.accent, opacity: pressed ? 0.7 : 1 },
+              ]}>
+              <SymbolView
+                name={{ ios: 'plus', android: 'add', web: 'add' }}
+                tintColor={t.onAccent}
+                size={18}
+              />
+            </Pressable>
+            <AccountButton />
+          </>
+        }
+      />
+      <FlatList
+        data={photos}
+        keyExtractor={(p) => p.id}
+        numColumns={COLUMNS}
+        columnWrapperStyle={{ gap: GAP }}
+        contentContainerStyle={styles.grid}
+        renderItem={renderTile}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} tintColor={t.muted} />
+        }
+        ListHeaderComponent={
+          <View style={styles.notes}>
+            {error ? <ErrorText>{error}</ErrorText> : null}
+            {hasConfirmed || loading ? null : (
+              <View style={styles.hint}>
+                <Text style={[type.headline, { color: t.ink }]}>Add a watcher first</Text>
+                <Text style={[type.callout, styles.hintBody, { color: t.muted }]}>
+                  Add someone's phone number and confirm it with the code they get. Then you can
+                  choose them for your photos.
+                </Text>
+                <View style={styles.hintAction}>
+                  <TextButton title="Go to Watchers  ›" onPress={() => router.navigate('/watchers')} />
+                </View>
+              </View>
+            )}
+          </View>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator color={t.muted} style={{ marginTop: 32 }} />
+          ) : error ? undefined : (
+            <View style={styles.empty}>
+              <Text style={[type.callout, styles.emptyText, { color: t.muted }]}>
+                No photos yet. Upload one to start.
+              </Text>
+              <Button title="Upload from camera roll" onPress={pick} />
+            </View>
+          )
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: PADDING,
-    gap: GAP,
-    width: '100%',
-    maxWidth: MAX_WIDTH,
-    alignSelf: 'center',
-  },
-  header: { marginBottom: 6 },
-  section: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginTop: 20,
-    marginLeft: 4,
-  },
-  empty: { fontSize: 14, textAlign: 'center', paddingVertical: 12 },
-  banner: { borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12 },
-  bannerTitle: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
-  bannerBody: { fontSize: 14, lineHeight: 20 },
+  screen: { flex: 1 },
+  grid: { gap: GAP, width: '100%', maxWidth: MAX_WIDTH, alignSelf: 'center', paddingBottom: 24 },
+  add: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  notes: { paddingHorizontal: 20 },
+  hint: { paddingTop: 4, paddingBottom: 20 },
+  hintBody: { marginTop: 4 },
+  hintAction: { marginTop: 10, alignItems: 'flex-start' },
+  empty: { paddingHorizontal: 20, paddingTop: 8 },
+  emptyText: { marginBottom: 16 },
   tag: {
     position: 'absolute',
-    left: 6,
-    bottom: 6,
+    left: 5,
+    bottom: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    height: 22,
-    paddingHorizontal: 6,
-    borderRadius: 6,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    gap: 3,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  tagText: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
-  badge: {
+  tagText: { color: '#ffffff', fontSize: 11, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  lock: {
     position: 'absolute',
-    right: 6,
-    bottom: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    right: 5,
+    bottom: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },

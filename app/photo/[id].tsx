@@ -276,7 +276,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   notice: {
-    color: '#a5b4fc',
+    color: '#ffffff',
+    fontWeight: '500',
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',

@@ -1,22 +1,21 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { isDemo } from '@/lib/supabase';
-import { useTheme } from '@/lib/theme';
+import { hairline, type, useTheme } from '@/lib/theme';
 
 /** Shown only in the demo version, which has no server behind it. */
 export function DemoNotice({ children }: { children: string }) {
   const t = useTheme();
   if (!isDemo) return null;
   return (
-    <View style={[styles.box, { backgroundColor: t.warnSoft }]}>
-      <Text style={[styles.title, { color: t.warn }]}>Demo version</Text>
-      <Text style={[styles.body, { color: t.warn }]}>{children}</Text>
+    <View style={[styles.box, { borderColor: t.line }]}>
+      <Text style={[type.label, { color: t.ink }]}>Demo version</Text>
+      <Text style={[type.footnote, styles.body, { color: t.muted }]}>{children}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  box: { borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12 },
-  title: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
-  body: { fontSize: 14, lineHeight: 20 },
+  box: { borderWidth: hairline * 2, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 24 },
+  body: { marginTop: 4 },
 });

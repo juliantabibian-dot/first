@@ -2,11 +2,12 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { Card, ErrorText } from '@/components/ui';
+import { AccountButton } from '@/components/AccountButton';
+import { ErrorText, ScreenHeader } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatPhone } from '@/lib/phone';
 import { isDemo, supabase } from '@/lib/supabase';
-import { useTheme } from '@/lib/theme';
+import { type, useTheme } from '@/lib/theme';
 import { ago } from '@/lib/time';
 
 type SentText = {
@@ -14,13 +15,13 @@ type SentText = {
   watcher_name: string;
   watcher_phone: string;
   body: string;
-  /** 'sent', 'failed', 'queued', or 'simulated' when Twilio isn't connected. */
+  /** 'sent', 'failed', 'queued', or 'simulated' when no real text could go out. */
   status: string;
   created_at: string;
 };
 
 const STATUS_NOTES: Record<string, string> = {
-  simulated: isDemo ? 'Demo: not actually sent' : "Not actually sent — real texting isn't switched on yet",
+  simulated: isDemo ? 'Demo: not actually sent' : "Not sent. Real texting isn't switched on yet.",
   failed: "Couldn't be sent",
 };
 
@@ -29,20 +30,22 @@ function TextRow({ item }: { item: SentText }) {
   const alert = item.body.startsWith('Lookout alert');
   const note = STATUS_NOTES[item.status];
   return (
-    <View style={[styles.row, { backgroundColor: t.card, borderColor: t.line }]}>
+    <View style={styles.row}>
       <View style={styles.to}>
-        <Text style={[styles.toText, { color: t.muted }]} numberOfLines={1}>
-          <Text style={[styles.name, { color: t.ink }]}>{item.watcher_name}</Text>
-          {' · '}
+        {/* A red dot marks the texts that report something happening to a photo. */}
+        {alert ? <View style={[styles.dot, { backgroundColor: t.danger }]} /> : null}
+        <Text style={[type.callout, styles.toText, { color: t.muted }]} numberOfLines={1}>
+          <Text style={{ color: t.ink, fontWeight: '600' }}>{item.watcher_name}</Text>
+          {'  '}
           {formatPhone(item.watcher_phone)}
         </Text>
-        <Text style={[styles.when, { color: t.muted }]}>{ago(item.created_at)}</Text>
+        <Text style={[type.footnote, { color: t.muted }]}>{ago(item.created_at)}</Text>
       </View>
-      <View style={[styles.bubble, { backgroundColor: alert ? t.dangerSoft : t.line }]}>
-        <Text style={[styles.body, { color: t.ink }]}>{item.body}</Text>
+      <View style={[styles.bubble, { backgroundColor: t.bubble }]}>
+        <Text style={[type.callout, { color: t.ink }]}>{item.body}</Text>
       </View>
       {note ? (
-        <Text style={[styles.note, { color: item.status === 'failed' ? t.danger : t.warn }]}>
+        <Text style={[type.footnote, { color: item.status === 'failed' ? t.danger : t.muted }]}>
           {note}
         </Text>
       ) : null}
@@ -90,48 +93,55 @@ export default function Texts() {
   }, [load]);
 
   return (
-    <FlatList
-      style={{ backgroundColor: t.bg }}
-      contentContainerStyle={styles.content}
-      data={texts}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => <TextRow item={item} />}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} tintColor={t.muted} />
-      }
-      ListHeaderComponent={error ? <ErrorText>{error}</ErrorText> : undefined}
-      ListEmptyComponent={
-        loading ? (
-          <ActivityIndicator color={t.muted} style={{ marginTop: 24 }} />
-        ) : error ? undefined : (
-          <Card>
-            <Text style={[styles.emptyTitle, { color: t.ink }]}>No texts yet</Text>
-            <Text style={[styles.emptyBody, { color: t.muted }]}>
-              Every text Lookout sends to your watchers will be listed here.
-            </Text>
-          </Card>
-        )
-      }
-    />
+    <View style={[styles.screen, { backgroundColor: t.bg }]}>
+      <ScreenHeader title="Texts" subtitle="Sent to your watchers" right={<AccountButton />} />
+      <FlatList
+        contentContainerStyle={styles.content}
+        data={texts}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <TextRow item={item} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} tintColor={t.muted} />
+        }
+        ListHeaderComponent={error ? <ErrorText>{error}</ErrorText> : undefined}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator color={t.muted} style={{ marginTop: 24 }} />
+          ) : error ? undefined : (
+            <View>
+              <Text style={[type.headline, { color: t.ink }]}>No texts yet</Text>
+              <Text style={[type.callout, { color: t.muted, marginTop: 4 }]}>
+                Every text Lookout sends to your watchers will be listed here.
+              </Text>
+            </View>
+          )
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 10, width: '100%', maxWidth: 560, alignSelf: 'center' },
-  row: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 8 },
-  to: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  toText: { flex: 1, fontSize: 13 },
-  name: { fontWeight: '700' },
-  when: { fontSize: 13 },
+  screen: { flex: 1 },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 32,
+    gap: 22,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+  },
+  row: { gap: 6 },
+  to: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  toText: { flex: 1, fontVariant: ['tabular-nums'] },
   bubble: {
     alignSelf: 'flex-start',
+    maxWidth: '92%',
     borderRadius: 18,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: 5,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
-  body: { fontSize: 15, lineHeight: 21 },
-  note: { fontSize: 12, fontWeight: '600' },
-  emptyTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 6 },
-  emptyBody: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
 });

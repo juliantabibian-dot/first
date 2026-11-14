@@ -2,12 +2,12 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
 import { ConfirmHost } from '@/components/ConfirmHost';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { useAppSwitcherBlur } from '@/lib/capture';
+import { useTheme } from '@/lib/theme';
 import { PhotosProvider } from '@/lib/photos';
 import { WatchersProvider } from '@/lib/watchers';
 
@@ -28,7 +28,7 @@ export default function RootLayout() {
 }
 
 function RootNav() {
-  const scheme = useColorScheme();
+  const t = useTheme();
   const { loading, session, profile } = useAuth();
   useAppSwitcherBlur();
 
@@ -38,12 +38,27 @@ function RootNav() {
 
   if (loading) return null;
 
+  // React Navigation paints its own backgrounds and borders; match them to the palette.
+  const base = t.bg === '#000000' ? DarkTheme : DefaultTheme;
+  const navTheme = {
+    ...base,
+    colors: { ...base.colors, background: t.bg, card: t.bg, text: t.ink, border: t.line, primary: t.ink },
+  };
+
   const signedIn = Boolean(session);
   const ready = signedIn && Boolean(profile);
 
   return (
-    <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+    <ThemeProvider value={navTheme}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: t.bg },
+          headerTintColor: t.ink,
+          headerTitleStyle: { fontWeight: '600' },
+          contentStyle: { backgroundColor: t.bg },
+        }}>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
         </Stack.Protected>

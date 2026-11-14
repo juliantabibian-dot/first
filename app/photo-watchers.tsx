@@ -1,11 +1,11 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, ErrorText } from '@/components/ui';
+import { Button, Choice, Divider, ErrorText, Group, NoteText, TextButton } from '@/components/ui';
 import { formatPhone } from '@/lib/phone';
 import { usePhotos } from '@/lib/photos';
-import { useTheme } from '@/lib/theme';
+import { type, useTheme } from '@/lib/theme';
 import { useWatchers } from '@/lib/watchers';
 
 /**
@@ -53,111 +53,58 @@ export default function PhotoWatchers() {
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={styles.content}>
       {kept ? (
-        <View style={[styles.kept, { backgroundColor: t.warnSoft }]}>
-          <Text style={[styles.keptText, { color: t.warn }]}>
-            The originals weren't deleted, so they are still in your camera roll.
-          </Text>
-        </View>
+        <NoteText>The originals weren't deleted, so they are still in your camera roll.</NoteText>
       ) : null}
-      <Text style={[styles.heading, { color: t.ink }]}>
+      <Text accessibilityRole="header" style={[type.title, { color: t.ink }]}>
         Who watches {many ? `these ${photoIds.length} photos` : 'this photo'}?
       </Text>
-      <Text style={[styles.sub, { color: t.muted }]}>
+      <Text style={[type.callout, styles.sub, { color: t.muted }]}>
         They get a text if {many ? 'any of them is' : "it's"} shared, downloaded or screenshotted.
         Anyone you add or remove gets a text about that too.
       </Text>
 
       {options.length ? (
-        <View accessibilityRole="list" style={styles.list}>
-          {options.map((w) => {
-            const on = selected.includes(w.id);
-            return (
-              <Pressable
-                key={w.id}
-                accessibilityRole="checkbox"
-                // aria-checked is what the web build reads; accessibilityState is for iOS.
-                aria-checked={on}
-                accessibilityState={{ checked: on, disabled: busy }}
-                accessibilityLabel={w.name}
+        <Group style={styles.group}>
+          {options.map((w, index) => (
+            <View key={w.id}>
+              {index ? <Divider inset={48} /> : null}
+              <Choice
+                kind="checkbox"
+                selected={selected.includes(w.id)}
+                title={w.name}
+                body={`${formatPhone(w.phone_e164)}${
+                  w.status === 'opted_out' ? ' · opted out of texts' : ''
+                }`}
                 disabled={busy}
                 onPress={() => toggle(w.id)}
-                style={[
-                  styles.option,
-                  { backgroundColor: on ? t.accentSoft : t.card, borderColor: on ? t.accent : t.line },
-                ]}>
-                <View
-                  style={[
-                    styles.check,
-                    { borderColor: on ? t.accent : t.muted, backgroundColor: on ? t.accent : 'transparent' },
-                  ]}>
-                  {on ? <Text style={[styles.tick, { color: t.onAccent }]}>✓</Text> : null}
-                </View>
-                <View style={styles.optionText}>
-                  <Text style={[styles.name, { color: t.ink }]}>{w.name}</Text>
-                  <Text style={[styles.phone, { color: t.muted }]}>
-                    {formatPhone(w.phone_e164)}
-                    {w.status === 'opted_out' ? ' · opted out of texts' : ''}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+              />
+            </View>
+          ))}
+        </Group>
       ) : (
-        <View style={styles.list}>
-          <Card>
-            <Text style={[styles.empty, { color: t.muted }]}>
-              You don't have any confirmed watchers yet. Add someone's number on the Watchers tab
-              and confirm it with the code they get. Then come back to this photo.
-            </Text>
-          </Card>
-        </View>
+        <Text style={[type.callout, styles.empty, { color: t.muted }]}>
+          You don't have any confirmed watchers yet. Add someone's number on the Watchers tab and
+          confirm it with the code they get. Then come back to this photo.
+        </Text>
       )}
 
       {error ? <ErrorText>{error}</ErrorText> : null}
       {options.length ? (
-        <>
-          <Button title="Save" onPress={save} loading={busy} />
-          <View style={{ height: 8 }} />
-          <Button title="Not now" variant="ghost" onPress={() => router.back()} disabled={busy} />
-        </>
+        <Button title="Save" onPress={save} loading={busy} />
       ) : (
-        <>
-          <Button title="Go to Watchers" onPress={() => router.replace('/watchers')} />
-          <View style={{ height: 8 }} />
-          <Button title="Not now" variant="ghost" onPress={() => router.back()} />
-        </>
+        <Button title="Go to Watchers" onPress={() => router.replace('/watchers')} />
       )}
+      <View style={styles.later}>
+        <TextButton title="Not now" onPress={() => router.back()} disabled={busy} />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, width: '100%', maxWidth: 560, alignSelf: 'center' },
-  kept: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 },
-  keptText: { fontSize: 14, lineHeight: 20 },
-  heading: { fontSize: 20, fontWeight: '700' },
-  sub: { fontSize: 14, lineHeight: 20, marginTop: 4 },
-  list: { gap: 10, marginTop: 16, marginBottom: 16 },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1.5,
-    borderRadius: 16,
-    padding: 14,
-  },
-  check: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tick: { fontSize: 15, fontWeight: '800', lineHeight: 18 },
-  optionText: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '600' },
-  phone: { fontSize: 13, marginTop: 2 },
-  empty: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  content: { padding: 20, paddingBottom: 32, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  sub: { marginTop: 4 },
+  group: { marginTop: 16, marginBottom: 20 },
+  empty: { marginTop: 16, marginBottom: 20 },
+  later: { alignItems: 'center', marginTop: 18 },
 });

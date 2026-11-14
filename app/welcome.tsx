@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { AuthScreen } from '@/components/AuthScreen';
-import { Button, Card, ErrorText, Field } from '@/components/ui';
+import { Button, ErrorText, Field, TextButton } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 
 /** First sign-in only: ask for the name watchers will see in their texts. */
@@ -27,24 +27,23 @@ export default function Welcome() {
   return (
     <AuthScreen
       title="What's your name?"
-      blurb="Your watchers see this in every text, like “Julian downloaded a photo you're watching.”">
-      <Card>
-        <Field
-          label="Your name"
-          value={name}
-          onChangeText={setName}
-          maxLength={30}
-          autoFocus
-          autoCapitalize="words"
-          textContentType="givenName"
-          placeholder="Julian"
-          onSubmitEditing={submit}
-        />
-        {error ? <ErrorText>{error}</ErrorText> : null}
-        <Button title="Continue" onPress={submit} loading={busy} />
-        <View style={{ height: 8 }} />
-        <Button title="Sign out" variant="ghost" onPress={signOut} disabled={busy} />
-      </Card>
+      blurb="Your watchers see it in every text, like “Julian downloaded a photo you're watching.”">
+      <Field
+        label="Your name"
+        value={name}
+        onChangeText={setName}
+        maxLength={30}
+        autoFocus
+        autoCapitalize="words"
+        textContentType="givenName"
+        placeholder="First name"
+        onSubmitEditing={submit}
+      />
+      {error ? <ErrorText>{error}</ErrorText> : null}
+      <Button title="Continue" onPress={submit} loading={busy} />
+      <View style={{ alignItems: 'center', marginTop: 18 }}>
+        <TextButton title="Sign out" onPress={signOut} disabled={busy} />
+      </View>
     </AuthScreen>
   );
 }

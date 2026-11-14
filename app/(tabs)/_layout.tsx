@@ -1,40 +1,13 @@
-import { router, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { Pressable, StyleSheet, Text, type ColorValue } from 'react-native';
+import { type ColorValue } from 'react-native';
 
-import { useAuth } from '@/lib/auth';
-import { useTheme } from '@/lib/theme';
+import { hairline, useTheme } from '@/lib/theme';
 import { useWatchers } from '@/lib/watchers';
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-function AccountButton() {
-  const t = useTheme();
-  const { profile } = useAuth();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Account"
-      hitSlop={6}
-      onPress={() => router.push('/account')}
-      style={[styles.avatar, { backgroundColor: t.accent }]}>
-      <Text style={[styles.avatarText, { color: t.onAccent }]}>
-        {initials(profile?.name ?? '?')}
-      </Text>
-    </Pressable>
-  );
-}
 
 const icon =
   (name: SymbolViewProps['name']) =>
-  ({ color }: { color: ColorValue }) => <SymbolView name={name} tintColor={color} size={26} />;
+  ({ color }: { color: ColorValue }) => <SymbolView name={name} tintColor={color} size={25} />;
 
 export default function TabLayout() {
   const t = useTheme();
@@ -42,9 +15,13 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: t.accent,
-        tabBarBadgeStyle: { backgroundColor: t.danger, color: t.onAccent },
-        headerRight: () => <AccountButton />,
+        // Each tab draws its own large title.
+        headerShown: false,
+        tabBarActiveTintColor: t.ink,
+        tabBarInactiveTintColor: t.muted,
+        tabBarStyle: { backgroundColor: t.bg, borderTopColor: t.line, borderTopWidth: hairline },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
+        tabBarBadgeStyle: { backgroundColor: t.danger, color: '#ffffff', fontSize: 11 },
       }}>
       <Tabs.Screen
         name="index"
@@ -65,23 +42,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="texts"
         options={{
-          title: 'Texts sent',
-          tabBarLabel: 'Texts',
+          title: 'Texts',
           tabBarIcon: icon({ ios: 'message', android: 'chat', web: 'chat' }),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 13, fontWeight: '700' },
-});

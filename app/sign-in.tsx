@@ -3,10 +3,10 @@ import { Text, View } from 'react-native';
 
 import { AuthScreen } from '@/components/AuthScreen';
 import { DemoNotice } from '@/components/DemoNotice';
-import { Button, Card, ErrorText, Field } from '@/components/ui';
+import { Button, ErrorText, Field, TextButton } from '@/components/ui';
 import { formatPhone, toE164 } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/lib/theme';
+import { type, useTheme } from '@/lib/theme';
 
 export default function SignIn() {
   const t = useTheme();
@@ -53,56 +53,54 @@ export default function SignIn() {
         Nothing is sent and everything stays on this phone. Use any phone number, and any 6 digits
         as the code.
       </DemoNotice>
-      <Card>
-        {sentTo ? (
-          <>
-            <Text style={{ color: t.muted, fontSize: 14, marginBottom: 12 }}>
-              We texted a 6-digit code to {formatPhone(sentTo)}.
-            </Text>
-            <Field
-              label="Code"
-              value={code}
-              onChangeText={(v) => setCode(v.replace(/\D/g, ''))}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              autoComplete="one-time-code"
-              maxLength={6}
-              autoFocus
-              placeholder="123456"
-            />
-            {error ? <ErrorText>{error}</ErrorText> : null}
-            <Button title="Sign in" onPress={verify} loading={busy} disabled={code.length !== 6} />
-            <View style={{ height: 8 }} />
-            <Button
+      {sentTo ? (
+        <>
+          <Field
+            label={`Code sent to ${formatPhone(sentTo)}`}
+            accessibilityLabel="Code"
+            value={code}
+            onChangeText={(v) => setCode(v.replace(/\D/g, ''))}
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="one-time-code"
+            maxLength={6}
+            autoFocus
+            placeholder="6 digits"
+            style={{ fontVariant: ['tabular-nums'], letterSpacing: code ? 4 : 0 }}
+          />
+          {error ? <ErrorText>{error}</ErrorText> : null}
+          <Button title="Sign in" onPress={verify} loading={busy} disabled={code.length !== 6} />
+          <View style={{ alignItems: 'center', marginTop: 18 }}>
+            <TextButton
               title="Use a different number"
-              variant="ghost"
               disabled={busy}
               onPress={() => {
                 setSentTo(null);
                 setError('');
               }}
             />
-          </>
-        ) : (
-          <>
-            <Field
-              label="Your phone number"
-              value={phoneInput}
-              onChangeText={setPhoneInput}
-              keyboardType="phone-pad"
-              textContentType="telephoneNumber"
-              autoComplete="tel"
-              placeholder="(555) 123-4567"
-              onSubmitEditing={sendCode}
-            />
-            {error ? <ErrorText>{error}</ErrorText> : null}
-            <Button title="Text me a code" onPress={sendCode} loading={busy} />
-            <Text style={{ color: t.muted, fontSize: 13, marginTop: 12, textAlign: 'center' }}>
-              New here? This creates your account.
-            </Text>
-          </>
-        )}
-      </Card>
+          </View>
+        </>
+      ) : (
+        <>
+          <Field
+            label="Your phone number"
+            value={phoneInput}
+            onChangeText={setPhoneInput}
+            keyboardType="phone-pad"
+            textContentType="telephoneNumber"
+            autoComplete="tel"
+            placeholder="(555) 123-4567"
+            onSubmitEditing={sendCode}
+            style={{ fontVariant: ['tabular-nums'] }}
+          />
+          {error ? <ErrorText>{error}</ErrorText> : null}
+          <Button title="Text me a code" onPress={sendCode} loading={busy} />
+          <Text style={[type.footnote, { color: t.muted, marginTop: 14 }]}>
+            New here? This creates your account.
+          </Text>
+        </>
+      )}
     </AuthScreen>
   );
 }
