@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AuthScreen } from '@/components/AuthScreen';
 import { DemoNotice } from '@/components/DemoNotice';
@@ -99,8 +99,36 @@ export default function SignIn() {
           <Text style={[type.footnote, { color: t.muted, marginTop: 14 }]}>
             New here? This creates your account.
           </Text>
+
+          {/* The product in one glance: the text a watcher actually receives. */}
+          <View style={[styles.preview, { borderTopColor: t.line }]}>
+            <Text style={[type.label, { color: t.muted }]}>What a watcher gets</Text>
+            <View style={styles.thread}>
+              <Text style={[type.footnote, styles.sender, { color: t.muted }]}>Lookout · now</Text>
+              <View style={[styles.bubble, { backgroundColor: t.bubble }]}>
+                <Text style={[type.callout, { color: t.ink }]}>
+                  Lookout alert: Sam downloaded a photo you're watching. It's now saved outside
+                  the app.
+                </Text>
+              </View>
+            </View>
+          </View>
         </>
       )}
     </AuthScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  preview: { marginTop: 40, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth },
+  thread: { marginTop: 12 },
+  sender: { marginBottom: 6, marginLeft: 4 },
+  bubble: {
+    alignSelf: 'flex-start',
+    maxWidth: '88%',
+    borderRadius: 18,
+    borderBottomLeftRadius: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+});

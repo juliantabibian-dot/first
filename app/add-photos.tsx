@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Choice, Divider, ErrorText, Group, TextButton } from '@/components/ui';
+import { haptic } from '@/lib/haptics';
 import { CAN_DELETE_ORIGINALS, deleteOriginals } from '@/lib/photoActions';
 import { usePhotos, type DownloadPolicy } from '@/lib/photos';
 import { type, useTheme } from '@/lib/theme';
@@ -63,6 +64,7 @@ export default function AddPhotos() {
       if (outcome === 'kept') originalsKept.current = true;
     }
     if (!failed.length) {
+      haptic.success();
       // Straight on to "Who watches these photos?" for everything just uploaded.
       leaving.current = true;
       router.replace({

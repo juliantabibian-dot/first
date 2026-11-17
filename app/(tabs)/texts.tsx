@@ -1,14 +1,22 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  RefreshControl,
+  SectionList,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { AccountButton } from '@/components/AccountButton';
 import { ErrorText, ScreenHeader } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatPhone } from '@/lib/phone';
 import { isDemo, supabase } from '@/lib/supabase';
-import { type, useTheme } from '@/lib/theme';
-import { ago } from '@/lib/time';
+import { type Palette, type, useTheme } from '@/lib/theme';
+import { clock, dayLabel } from '@/lib/time';
 
 type SentText = {
   id: string;
@@ -25,30 +33,66 @@ const STATUS_NOTES: Record<string, string> = {
   failed: "Couldn't be sent",
 };
 
-function TextRow({ item }: { item: SentText }) {
-  const t = useTheme();
-  const alert = item.body.startsWith('Lookout alert');
+type Kind = {
+  label: string;
+  symbol: SymbolViewProps['name'];
+  /** Alerts are about something happening to a photo; the rest is housekeeping. */
+  alert: boolean;
+};
+
+const sym = (ios: string, material: string): SymbolViewProps['name'] =>
+  ({ ios, android: material, web: material }) as SymbolViewProps['name'];
+
+/** What a text was about, read from its wording (the templates live in supabase/functions/_shared/messages.ts). */
+function kindOf(body: string): Kind {
+  const has = (s: string) => body.includes(s);
+  if (has('downloaded a photo')) return { label: 'Downloaded', symbol: sym('arrow.down.to.line', 'download'), alert: true };
+  if (has('shared a photo')) return { label: 'Shared', symbol: sym('square.and.arrow.up', 'ios_share'), alert: true };
+  if (has('took a screenshot')) return { label: 'Screenshot', symbol: sym('camera.viewfinder', 'screenshot'), alert: true };
+  if (has('recorded their screen')) return { label: 'Screen recording', symbol: sym('record.circle', 'screen_record'), alert: true };
+  if (has('deleted a photo')) return { label: 'Deleted', symbol: sym('trash', 'delete'), alert: true };
+  if (has('deleted their Lookout account')) return { label: 'Account deleted', symbol: sym('person.crop.circle.badge.xmark', 'person_off'), alert: true };
+  if (has('Your code is')) return { label: 'Code', symbol: sym('number', 'pin'), alert: false };
+  if (has("You're confirmed")) return { label: 'Confirmed', symbol: sym('checkmark', 'check'), alert: false };
+  if (has('Lookout test')) return { label: 'Test', symbol: sym('paperplane', 'send'), alert: false };
+  if (has('made you a watcher')) return { label: 'Now watching', symbol: sym('eye', 'visibility'), alert: false };
+  if (has('removed you as a watcher')) return { label: 'Removed', symbol: sym('eye.slash', 'visibility_off'), alert: false };
+  return { label: 'Text', symbol: sym('message', 'chat'), alert: false };
+}
+
+function TextRow({ item, t }: { item: SentText; t: Palette }) {
+  const kind = kindOf(item.body);
   const note = STATUS_NOTES[item.status];
   return (
     <View style={styles.row}>
-      <View style={styles.to}>
-        {/* A red dot marks the texts that report something happening to a photo. */}
-        {alert ? <View style={[styles.dot, { backgroundColor: t.danger }]} /> : null}
-        <Text style={[type.callout, styles.toText, { color: t.muted }]} numberOfLines={1}>
-          <Text style={{ color: t.ink, fontWeight: '600' }}>{item.watcher_name}</Text>
-          {'  '}
-          {formatPhone(item.watcher_phone)}
-        </Text>
-        <Text style={[type.footnote, { color: t.muted }]}>{ago(item.created_at)}</Text>
+      <View
+        style={[styles.icon, { backgroundColor: kind.alert ? t.alertSoft : t.fill }]}
+        accessibilityElementsHidden
+        importantForAccessibility="no">
+        <SymbolView name={kind.symbol} tintColor={kind.alert ? t.alert : t.ink} size={15} />
       </View>
-      <View style={[styles.bubble, { backgroundColor: t.bubble }]}>
-        <Text style={[type.callout, { color: t.ink }]}>{item.body}</Text>
+      <View style={styles.rowBody}>
+        <View style={styles.to}>
+          <Text style={[type.footnote, styles.kind, { color: kind.alert ? t.alert : t.muted }]}>
+            {kind.label}
+          </Text>
+          <Text
+            style={[type.footnote, styles.toText, { color: t.muted }]}
+            numberOfLines={1}
+            accessibilityLabel={`to ${item.watcher_name}, ${formatPhone(item.watcher_phone)}`}>
+            to <Text style={{ color: t.ink, fontWeight: '600' }}>{item.watcher_name}</Text>
+          </Text>
+          <Text style={[type.footnote, styles.time, { color: t.muted }]}>{clock(item.created_at)}</Text>
+        </View>
+        <View style={[styles.bubble, { backgroundColor: t.bubble }]}>
+          <Text style={[type.callout, { color: t.ink }]}>{item.body}</Text>
+        </View>
+        {note ? (
+          <Text style={[type.footnote, { color: item.status === 'failed' ? t.danger : t.muted }]}>
+            {note}
+          </Text>
+        ) : null}
       </View>
-      {note ? (
-        <Text style={[type.footnote, { color: item.status === 'failed' ? t.danger : t.muted }]}>
-          {note}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -92,14 +136,34 @@ export default function Texts() {
     setRefreshing(false);
   }, [load]);
 
+  // Newest first, one section per day.
+  const sections = useMemo(() => {
+    const out: { title: string; data: SentText[] }[] = [];
+    for (const text of texts) {
+      const title = dayLabel(text.created_at);
+      if (out.at(-1)?.title === title) out.at(-1)!.data.push(text);
+      else out.push({ title, data: [text] });
+    }
+    return out;
+  }, [texts]);
+
+  const alerts = texts.filter((x) => kindOf(x.body).alert).length;
+  const subtitle = texts.length
+    ? `${texts.length} sent${alerts ? ` · ${alerts} ${alerts === 1 ? 'alert' : 'alerts'}` : ''}`
+    : 'Everything sent to your watchers';
+
   return (
     <View style={[styles.screen, { backgroundColor: t.bg }]}>
-      <ScreenHeader title="Texts" subtitle="Sent to your watchers" right={<AccountButton />} />
-      <FlatList
+      <ScreenHeader title="Texts" subtitle={subtitle} right={<AccountButton />} />
+      <SectionList
         contentContainerStyle={styles.content}
-        data={texts}
+        sections={sections}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <TextRow item={item} />}
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section }) => (
+          <Text style={[type.label, styles.day, { color: t.muted }]}>{section.title}</Text>
+        )}
+        renderItem={({ item }) => <TextRow item={item} t={t} />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} tintColor={t.muted} />
         }
@@ -108,10 +172,16 @@ export default function Texts() {
           loading ? (
             <ActivityIndicator color={t.muted} style={{ marginTop: 24 }} />
           ) : error ? undefined : (
-            <View>
+            <View style={styles.empty}>
+              <View style={[styles.sample, { backgroundColor: t.bubble }]}>
+                <Text style={[type.callout, { color: t.muted }]}>
+                  Lookout alert: someone downloaded a photo you're watching.
+                </Text>
+              </View>
               <Text style={[type.headline, { color: t.ink }]}>No texts yet</Text>
               <Text style={[type.callout, { color: t.muted, marginTop: 4 }]}>
-                Every text Lookout sends to your watchers will be listed here.
+                Every text Lookout sends to your watchers is kept here, so you can see exactly what
+                they were told and when.
               </Text>
             </View>
           )
@@ -123,25 +193,32 @@ export default function Texts() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 32,
-    gap: 22,
-    width: '100%',
-    maxWidth: 560,
-    alignSelf: 'center',
-  },
-  row: { gap: 6 },
-  to: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 7, height: 7, borderRadius: 4 },
+  content: { paddingHorizontal: 20, paddingBottom: 32, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  day: { marginTop: 20, marginBottom: 6 },
+  row: { flexDirection: 'row', gap: 12, paddingVertical: 10 },
+  icon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  rowBody: { flex: 1, minWidth: 0, gap: 6 },
+  to: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  kind: { fontWeight: '600' },
   toText: { flex: 1, fontVariant: ['tabular-nums'] },
+  time: { fontVariant: ['tabular-nums'] },
   bubble: {
     alignSelf: 'flex-start',
-    maxWidth: '92%',
+    maxWidth: '100%',
     borderRadius: 18,
     borderBottomLeftRadius: 5,
     paddingHorizontal: 14,
     paddingVertical: 9,
+  },
+  empty: { paddingTop: 12 },
+  sample: {
+    alignSelf: 'flex-start',
+    maxWidth: '85%',
+    borderRadius: 18,
+    borderBottomLeftRadius: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    marginBottom: 20,
+    opacity: 0.7,
   },
 });

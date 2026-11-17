@@ -5,9 +5,12 @@ import { type ColorValue } from 'react-native';
 import { hairline, useTheme } from '@/lib/theme';
 import { useWatchers } from '@/lib/watchers';
 
+/** Outline when idle, filled when selected, as in Apple's own apps. */
 const icon =
-  (name: SymbolViewProps['name']) =>
-  ({ color }: { color: ColorValue }) => <SymbolView name={name} tintColor={color} size={25} />;
+  (idle: SymbolViewProps['name'], active: SymbolViewProps['name']) =>
+  ({ color, focused }: { color: ColorValue; focused: boolean }) => (
+    <SymbolView name={focused ? active : idle} tintColor={color} size={25} />
+  );
 
 export default function TabLayout() {
   const t = useTheme();
@@ -27,7 +30,10 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Photos',
-          tabBarIcon: icon({ ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' }),
+          tabBarIcon: icon(
+            { ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' },
+            { ios: 'photo.fill.on.rectangle.fill', android: 'photo_library', web: 'photo_library' },
+          ),
         }}
       />
       <Tabs.Screen
@@ -36,14 +42,20 @@ export default function TabLayout() {
           title: 'Watchers',
           // Watchers still waiting for their code to be entered.
           tabBarBadge: pendingCount || undefined,
-          tabBarIcon: icon({ ios: 'eye', android: 'visibility', web: 'visibility' }),
+          tabBarIcon: icon(
+            { ios: 'eye', android: 'visibility', web: 'visibility' },
+            { ios: 'eye.fill', android: 'visibility', web: 'visibility' },
+          ),
         }}
       />
       <Tabs.Screen
         name="texts"
         options={{
           title: 'Texts',
-          tabBarIcon: icon({ ios: 'message', android: 'chat', web: 'chat' }),
+          tabBarIcon: icon(
+            { ios: 'message', android: 'chat', web: 'chat' },
+            { ios: 'message.fill', android: 'chat', web: 'chat' },
+          ),
         }}
       />
     </Tabs>

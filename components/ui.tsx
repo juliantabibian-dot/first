@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { haptic } from '@/lib/haptics';
 import { hairline, type, useTheme } from '@/lib/theme';
 
 type ButtonProps = {
@@ -68,7 +69,10 @@ export function Choice({
   body,
   onPress,
   disabled,
+  leading,
 }: {
+  /** Shown between the mark and the text, e.g. a watcher's face. */
+  leading?: React.ReactNode;
   kind: 'radio' | 'checkbox';
   selected: boolean;
   title: string;
@@ -85,11 +89,19 @@ export function Choice({
       aria-checked={selected}
       accessibilityState={{ checked: selected, selected, disabled }}
       disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [styles.choice, { opacity: pressed ? 0.6 : 1 }]}>
+      onPress={() => {
+        haptic.tick();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.choice,
+        leading ? styles.choiceCentered : null,
+        { opacity: pressed ? 0.6 : 1 },
+      ]}>
       <View
         style={[
           styles.choiceMark,
+          leading ? { marginTop: 0 } : null,
           { borderRadius: kind === 'radio' ? 11 : 6 },
           selected
             ? { backgroundColor: t.accent, borderColor: t.accent }
@@ -97,6 +109,7 @@ export function Choice({
         ]}>
         {selected ? <Text style={[styles.choiceTick, { color: t.onAccent }]}>✓</Text> : null}
       </View>
+      {leading}
       <View style={styles.choiceText}>
         <Text style={[type.headline, { color: t.ink }]}>{title}</Text>
         {body ? <Text style={[type.footnote, styles.choiceBody, { color: t.muted }]}>{body}</Text> : null}
@@ -229,6 +242,7 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: 17, fontWeight: '600' },
   buttonTextCompact: { fontSize: 15 },
   choice: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 14, paddingVertical: 13 },
+  choiceCentered: { alignItems: 'center' },
   choiceMark: {
     width: 22,
     height: 22,
@@ -250,11 +264,12 @@ const styles = StyleSheet.create({
   message: { marginBottom: 12 },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    // Controls line up with the title, whether or not there is a subtitle under it.
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
   headerText: { flex: 1, minWidth: 0, gap: 2 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingBottom: 6 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 3 },
 });

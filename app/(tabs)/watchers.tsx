@@ -1,7 +1,9 @@
 import { useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,6 +13,7 @@ import {
 } from 'react-native';
 
 import { AccountButton } from '@/components/AccountButton';
+import { Avatar } from '@/components/people';
 import {
   Button,
   Divider,
@@ -22,6 +25,7 @@ import {
   TextButton,
 } from '@/components/ui';
 import { confirmDestructive } from '@/lib/confirm';
+import { haptic } from '@/lib/haptics';
 import { formatPhone, toE164 } from '@/lib/phone';
 import { usePhotos } from '@/lib/photos';
 import { type, useTheme } from '@/lib/theme';
@@ -35,9 +39,13 @@ function NoteLine({ note }: { note: Note }) {
   return note.kind === 'error' ? <ErrorText>{note.text}</ErrorText> : <NoteText>{note.text}</NoteText>;
 }
 
+/** Folded into one row once there is someone on the list, since the list matters more then. */
 function AddWatcher() {
   const t = useTheme();
   const { watchers, add } = useWatchers();
+  /** null until the person opens or closes it: then it is open only while the list is empty. */
+  const [chosen, setOpen] = useState<boolean | null>(null);
+  const open = chosen ?? !watchers.length;
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
@@ -57,15 +65,45 @@ function AddWatcher() {
     setBusy(true);
     const result = await add(trimmed, e164);
     setBusy(false);
-    if (!result.ok) return fail(result.error);
+    if (!result.ok) {
+      haptic.error();
+      return fail(result.error);
+    }
+    haptic.success();
     setName('');
     setPhone('');
+    setOpen(false);
     setNote({
       kind: 'ok',
       text: result.data.simulated
         ? `Nothing was really sent. ${trimmed}'s code is in the Texts tab.`
         : `Code texted to ${trimmed}. Ask them for it and enter it below.`,
     });
+  }
+
+  if (!open) {
+    return (
+      <View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add a watcher"
+          onPress={() => setOpen(true)}
+          style={({ pressed }) => [styles.addRow, { backgroundColor: t.fill, opacity: pressed ? 0.7 : 1 }]}>
+          <View style={[styles.addIcon, { borderColor: t.muted }]}>
+            <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} tintColor={t.ink} size={16} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={[type.headline, { color: t.ink }]}>Add a watcher</Text>
+            <Text style={[type.footnote, { color: t.muted }]}>A phone number. They don't need the app.</Text>
+          </View>
+        </Pressable>
+        {note ? (
+          <View style={styles.addNote}>
+            <NoteLine note={note} />
+          </View>
+        ) : null}
+      </View>
+    );
   }
 
   return (
@@ -97,6 +135,18 @@ function AddWatcher() {
       />
       <NoteLine note={note} />
       <Button title="Text them a code" onPress={submit} loading={busy} />
+      {watchers.length ? (
+        <View style={styles.addCancel}>
+          <TextButton
+            title="Cancel"
+            disabled={busy}
+            onPress={() => {
+              setOpen(false);
+              setNote(null);
+            }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -127,7 +177,11 @@ function WatcherRow({ watcher, onRemoved }: { watcher: Watcher; onRemoved: (text
     setBusy(action);
     const result = await request();
     setBusy(null);
-    if (!result.ok) return setNote({ kind: 'error', text: result.error });
+    if (!result.ok) {
+      haptic.error();
+      return setNote({ kind: 'error', text: result.error });
+    }
+    if (action === 'confirm') haptic.success();
     const text = done(result.data);
     if (text) setNote({ kind: 'ok', text });
   }
@@ -191,6 +245,10 @@ function WatcherRow({ watcher, onRemoved }: { watcher: Watcher; onRemoved: (text
 
   return (
     <View style={styles.row}>
+      <View style={[styles.rowAvatar, !live && { opacity: 0.45 }]}>
+        <Avatar name={name} size={40} />
+      </View>
+      <View style={styles.rowBody}>
       <View style={styles.nameLine}>
         <Text style={[type.headline, styles.name, { color: t.ink }]} numberOfLines={1}>
           {name}
@@ -283,6 +341,7 @@ function WatcherRow({ watcher, onRemoved }: { watcher: Watcher; onRemoved: (text
           <NoteLine note={note} />
         </View>
       ) : null}
+      </View>
     </View>
   );
 }
@@ -317,24 +376,36 @@ export default function Watchers() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} tintColor={t.muted} />
         }>
-        <AddWatcher />
-
-        <SectionLabel>My watchers · {watchers.length}</SectionLabel>
-        {error ? <ErrorText>{error}</ErrorText> : null}
-        {removed ? <NoteText>{removed}</NoteText> : null}
-
         {watchers.length ? (
-          watchers.map((w, index) => (
-            <View key={w.id}>
-              {index ? <Divider /> : null}
-              <WatcherRow watcher={w} onRemoved={setRemoved} />
-            </View>
-          ))
+          <>
+            <SectionLabel>
+              {watchers.length} {watchers.length === 1 ? 'watcher' : 'watchers'}
+            </SectionLabel>
+            {error ? <ErrorText>{error}</ErrorText> : null}
+            {removed ? <NoteText>{removed}</NoteText> : null}
+            {watchers.map((w, index) => (
+              <View key={w.id}>
+                {index ? <Divider inset={54} /> : null}
+                <WatcherRow watcher={w} onRemoved={setRemoved} />
+              </View>
+            ))}
+          </>
         ) : loading ? (
           <ActivityIndicator color={t.muted} style={{ marginTop: 24 }} />
-        ) : error ? null : (
-          <Text style={[type.callout, { color: t.muted }]}>No one yet.</Text>
+        ) : (
+          <>
+            {error ? <ErrorText>{error}</ErrorText> : null}
+            {removed ? <NoteText>{removed}</NoteText> : null}
+            <Text style={[type.callout, styles.intro, { color: t.muted }]}>
+              Watchers are the people who get a text when one of your photos is shared, saved or
+              screenshotted. Start with someone you trust.
+            </Text>
+          </>
         )}
+        {/* Always in the same place, so a note under it survives the list appearing. */}
+        <View style={watchers.length ? styles.addAfter : null}>
+          {loading && !watchers.length ? null : <AddWatcher />}
+        </View>
       </ScrollView>
     </View>
   );
@@ -350,7 +421,24 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   blurb: { marginTop: -2, marginBottom: 16 },
-  row: { paddingVertical: 16 },
+  flex: { flex: 1 },
+  intro: { marginTop: 4, marginBottom: 4 },
+  addAfter: { marginTop: 20 },
+  addRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, padding: 14 },
+  addIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addNote: { marginTop: 10, marginBottom: -12 },
+  addCancel: { alignItems: 'center', marginTop: 16 },
+  row: { flexDirection: 'row', gap: 14, paddingVertical: 16 },
+  rowAvatar: { paddingTop: 2 },
+  rowBody: { flex: 1, minWidth: 0 },
   nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { flexShrink: 1, marginRight: 4 },
   dot: { width: 8, height: 8, borderRadius: 4 },

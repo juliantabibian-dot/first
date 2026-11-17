@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Choice, Divider, ErrorText, Group, NoteText, TextButton } from '@/components/ui';
+import { Avatar } from '@/components/people';
+import { haptic } from '@/lib/haptics';
 import { formatPhone } from '@/lib/phone';
 import { usePhotos } from '@/lib/photos';
 import { type, useTheme } from '@/lib/theme';
@@ -46,7 +48,11 @@ export default function PhotoWatchers() {
     setBusy(true);
     const result = await setWatchers(photoIds, selected);
     setBusy(false);
-    if (!result.ok) return setError(result.error);
+    if (!result.ok) {
+      haptic.error();
+      return setError(result.error);
+    }
+    haptic.success();
     router.back();
   }
 
@@ -67,7 +73,7 @@ export default function PhotoWatchers() {
         <Group style={styles.group}>
           {options.map((w, index) => (
             <View key={w.id}>
-              {index ? <Divider inset={48} /> : null}
+              {index ? <Divider inset={94} /> : null}
               <Choice
                 kind="checkbox"
                 selected={selected.includes(w.id)}
@@ -76,6 +82,7 @@ export default function PhotoWatchers() {
                   w.status === 'opted_out' ? ' · opted out of texts' : ''
                 }`}
                 disabled={busy}
+                leading={<Avatar name={w.name} size={34} />}
                 onPress={() => toggle(w.id)}
               />
             </View>

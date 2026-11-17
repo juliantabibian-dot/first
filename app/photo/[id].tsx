@@ -6,12 +6,14 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AvatarStack, joinNames } from '@/components/people';
 import { usePhotoShield, useScreenshotAlert } from '@/lib/capture';
 import { confirmDestructive } from '@/lib/confirm';
+import { haptic } from '@/lib/haptics';
 import { reportEvent, type PhotoEvent } from '@/lib/events';
 import { ACTIONS_ARE_SIMULATED, saveToCameraRoll, shareOut } from '@/lib/photoActions';
 import { usePhotos } from '@/lib/photos';
-import { ago } from '@/lib/time';
+import { addedOn } from '@/lib/time';
 import { useWatchers } from '@/lib/watchers';
 
 type Busy = 'share' | 'download' | 'delete' | null;
@@ -23,8 +25,10 @@ function Action({
   onPress,
   busy,
   disabled,
+  tone,
 }: {
   label: string;
+  tone?: 'danger';
   /** Small grey note under the label, e.g. "demo". */
   hint?: string;
   symbol: SymbolViewProps['name'];
@@ -38,16 +42,27 @@ function Action({
       accessibilityLabel={label}
       disabled={disabled || busy}
       onPress={onPress}
-      style={({ pressed }) => [styles.action, { opacity: disabled ? 0.4 : pressed ? 0.6 : 1 }]}>
-      {busy ? (
-        <ActivityIndicator color="#ffffff" style={styles.spinner} />
-      ) : (
-        <SymbolView name={symbol} tintColor="#ffffff" size={22} />
+      style={({ pressed }) => [styles.action, { opacity: disabled ? 0.35 : 1 }]}>
+      {({ pressed }) => (
+        <>
+          <View
+            style={[
+              styles.actionCircle,
+              tone === 'danger' && styles.actionCircleDanger,
+              { transform: [{ scale: pressed ? 0.92 : 1 }] },
+            ]}>
+            {busy ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <SymbolView name={symbol} tintColor={tone === 'danger' ? '#ff6b5e' : '#ffffff'} size={21} />
+            )}
+          </View>
+          <Text style={styles.actionLabel} numberOfLines={1}>
+            {label}
+          </Text>
+          {hint ? <Text style={styles.actionHint}>{hint}</Text> : null}
+        </>
       )}
-      <Text style={styles.actionLabel} numberOfLines={1}>
-        {label}
-      </Text>
-      {hint ? <Text style={styles.actionHint}>{hint}</Text> : null}
     </Pressable>
   );
 }
@@ -86,7 +101,10 @@ export default function PhotoViewer() {
   async function alertWatchers(type: PhotoEvent, done: string) {
     if (!photo) return;
     const result = await reportEvent(photo.id, type);
-    if (result.ok) setNotice(`${done} ${texted(result.data.texted)}`);
+    if (result.ok) {
+      if (result.data.texted) haptic.warning();
+      setNotice(`${done} ${texted(result.data.texted)}`);
+    }
     else if (result.network) {
       setNotice(`${done} You're offline, so the watchers will be texted when you're back online.`);
     } else setNotice(`${done} ${result.error}`);
@@ -100,10 +118,8 @@ export default function PhotoViewer() {
 
   const blocked = photo.download_policy === 'blocked';
   const watching = names.length
-    ? `If anything happens to this photo, ${
-        names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
-      } ${names.length === 1 ? 'gets' : 'get'} a text.`
-    : 'No one is watching this photo.';
+    ? `${joinNames(names)} ${names.length === 1 ? 'gets' : 'get'} a text if anything happens to this photo.`
+    : 'No one is watching this photo. Choose watchers so someone is told if it leaves the app.';
   const demo = ACTIONS_ARE_SIMULATED ? 'demo' : undefined;
 
   async function share() {
@@ -174,7 +190,10 @@ export default function PhotoViewer() {
         </Pressable>
         <View>
           <Text style={styles.title}>Your photo</Text>
-          <Text style={styles.meta}>Added {ago(photo.created_at)}</Text>
+          <Text style={styles.meta}>
+            {addedOn(photo.created_at)}
+            {blocked ? '  ·  Downloads blocked' : ''}
+          </Text>
         </View>
       </View>
 
@@ -187,7 +206,25 @@ export default function PhotoViewer() {
         />
       </View>
 
-      <Text style={styles.watching}>{watching}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Change who watches this photo"
+        disabled={busy !== null}
+        onPress={() => router.push({ pathname: '/photo-watchers', params: { ids: photo.id } })}
+        style={({ pressed }) => [styles.watchRow, { opacity: pressed ? 0.6 : 1 }]}>
+        {names.length ? (
+          <AvatarStack names={names} size={28} max={4} ring="#000000" />
+        ) : (
+          <View style={styles.nobody}>
+            <SymbolView
+              name={{ ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }}
+              tintColor="#ff7a33"
+              size={16}
+            />
+          </View>
+        )}
+        <Text style={[styles.watching, !names.length && { color: '#ffb48a' }]}>{watching}</Text>
+      </Pressable>
       {notice ? (
         <Text accessibilityLiveRegion="polite" style={styles.notice}>
           {notice}
@@ -195,12 +232,6 @@ export default function PhotoViewer() {
       ) : null}
 
       <View style={styles.actions}>
-        <Action
-          label="Watchers"
-          symbol={{ ios: 'eye', android: 'visibility', web: 'visibility' }}
-          disabled={busy !== null}
-          onPress={() => router.push({ pathname: '/photo-watchers', params: { ids: photo.id } })}
-        />
         {blocked ? null : (
           <>
             <Action
@@ -232,6 +263,7 @@ export default function PhotoViewer() {
           />
         ) : null}
         <Action
+          tone="danger"
           label="Delete"
           symbol={{ ios: 'trash', android: 'delete', web: 'delete' }}
           busy={busy === 'delete'}
@@ -240,41 +272,37 @@ export default function PhotoViewer() {
         />
       </View>
 
-      <View style={styles.footer}>
-        <SymbolView
-          name={
-            blocked
-              ? { ios: 'lock.fill', android: 'lock', web: 'lock' }
-              : { ios: 'arrow.down.circle', android: 'download', web: 'download' }
-          }
-          tintColor="#aaaaaa"
-          size={16}
-        />
-        <Text style={styles.meta}>
-          {blocked
-            ? "This photo can't be saved or shared out of Lookout."
-            : 'Sharing and downloading are allowed. Watchers get a text.'}
-        </Text>
-      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000000' },
-  top: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10 },
   close: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   title: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
-  meta: { color: '#aaaaaa', fontSize: 13, flexShrink: 1 },
-  picture: { flex: 1, marginHorizontal: 8 },
-  watching: {
-    color: '#dddddd',
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 12,
+  meta: { color: '#9a9a9f', fontSize: 13, marginTop: 1 },
+  picture: { flex: 1 },
+  watchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: '#161618',
   },
+  nobody: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#3a1d0e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  watching: { flex: 1, color: '#e5e5ea', fontSize: 14, lineHeight: 19 },
   notice: {
     color: '#ffffff',
     fontWeight: '500',
@@ -282,19 +310,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
     paddingHorizontal: 24,
-    paddingTop: 6,
+    paddingTop: 12,
   },
-  actions: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 12, paddingHorizontal: 8 },
-  action: { flex: 1, minWidth: 0, alignItems: 'center', gap: 4, paddingVertical: 6 },
-  actionHint: { color: '#aaaaaa', fontSize: 11, marginTop: -2 },
-  spinner: { height: 22 },
-  actionLabel: { color: '#ffffff', fontSize: 12, fontWeight: '600', textAlign: 'center' },
-  footer: {
+  actions: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingTop: 16,
+    paddingBottom: 10,
+    paddingHorizontal: 8,
+  },
+  action: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
+  actionCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#1f1f22',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    padding: 16,
-    paddingTop: 8,
   },
+  actionCircleDanger: { backgroundColor: '#2a1513' },
+  actionLabel: { color: '#ffffff', fontSize: 12, fontWeight: '500', textAlign: 'center' },
+  actionHint: { color: '#8e8e93', fontSize: 11, marginTop: -4 },
 });

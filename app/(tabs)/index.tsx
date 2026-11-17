@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 
 import { AccountButton } from '@/components/AccountButton';
-import { Button, ErrorText, ScreenHeader, TextButton } from '@/components/ui';
+import { AvatarStack } from '@/components/people';
+import { Button, ErrorText, Mark, ScreenHeader } from '@/components/ui';
 import { usePhotoShield } from '@/lib/capture';
 import { usePhotos, type Photo } from '@/lib/photos';
 import { type, useTheme } from '@/lib/theme';
@@ -65,15 +66,21 @@ export default function Photos() {
 
   const renderTile = useCallback(
     ({ item }: { item: Photo }) => {
-      const count = watchers.filter(
-        (w) => w.status === 'verified' && item.watcherIds.includes(w.id),
-      ).length;
+      const names = watchers
+        .filter((w) => w.status === 'verified' && item.watcherIds.includes(w.id))
+        .map((w) => w.name);
       return (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open photo"
+          accessibilityHint={names.length ? `Watched by ${names.join(', ')}` : 'No one is watching this photo'}
           onPress={() => router.push(`/photo/${item.id}`)}
-          style={{ width: tile, height: tile, backgroundColor: t.fill }}>
+          style={({ pressed }) => ({
+            width: tile,
+            height: tile,
+            backgroundColor: t.fill,
+            opacity: pressed ? 0.85 : 1,
+          })}>
           {/* pointerEvents="none" keeps the image itself from being pressed, dragged or saved. */}
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             <Image
@@ -82,16 +89,22 @@ export default function Photos() {
               contentFit="cover"
               style={StyleSheet.absoluteFill}
             />
+            {/* A soft shade at the bottom so the faces stay readable on bright photos. */}
+            <View style={styles.shade} />
           </View>
-          <View style={styles.tag}>
-            {count ? (
-              <SymbolView
-                name={{ ios: 'eye.fill', android: 'visibility', web: 'visibility' }}
-                tintColor="#ffffff"
-                size={12}
-              />
-            ) : null}
-            <Text style={styles.tagText}>{count ? count : 'No watchers'}</Text>
+          <View style={styles.tileFoot}>
+            {names.length ? (
+              <AvatarStack names={names} size={20} ring="rgba(255,255,255,0.9)" />
+            ) : (
+              <View style={[styles.unwatched, { backgroundColor: t.alert }]}>
+                <SymbolView
+                  name={{ ios: 'eye.slash.fill', android: 'visibility_off', web: 'visibility_off' }}
+                  tintColor="#ffffff"
+                  size={11}
+                />
+                <Text style={styles.unwatchedText}>Unwatched</Text>
+              </View>
+            )}
           </View>
           {item.download_policy === 'blocked' ? (
             <View style={styles.lock}>
@@ -105,14 +118,19 @@ export default function Photos() {
         </Pressable>
       );
     },
-    [tile, t.fill, watchers],
+    [tile, t.fill, t.alert, watchers],
   );
 
+  const unwatched = photos.filter(
+    (p) => !watchers.some((w) => w.status === 'verified' && p.watcherIds.includes(w.id)),
+  ).length;
   const subtitle = loading
     ? undefined
     : photos.length
-      ? `${photos.length} ${photos.length === 1 ? 'photo' : 'photos'}`
-      : 'No photos yet';
+      ? `${photos.length} ${photos.length === 1 ? 'photo' : 'photos'}${
+          unwatched ? ` · ${unwatched} unwatched` : ' · all watched'
+        }`
+      : 'Nothing here yet';
 
   return (
     <View style={[styles.screen, { backgroundColor: t.bg }]}>
@@ -154,16 +172,31 @@ export default function Photos() {
           <View style={styles.notes}>
             {error ? <ErrorText>{error}</ErrorText> : null}
             {hasConfirmed || loading ? null : (
-              <View style={styles.hint}>
-                <Text style={[type.headline, { color: t.ink }]}>Add a watcher first</Text>
-                <Text style={[type.callout, styles.hintBody, { color: t.muted }]}>
-                  Add someone's phone number and confirm it with the code they get. Then you can
-                  choose them for your photos.
-                </Text>
-                <View style={styles.hintAction}>
-                  <TextButton title="Go to Watchers  ›" onPress={() => router.navigate('/watchers')} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add a watcher first. Go to Watchers"
+                onPress={() => router.navigate('/watchers')}
+                style={({ pressed }) => [
+                  styles.hint,
+                  { backgroundColor: t.alertSoft, opacity: pressed ? 0.7 : 1 },
+                ]}>
+                <SymbolView
+                  name={{ ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }}
+                  tintColor={t.alert}
+                  size={18}
+                />
+                <View style={styles.hintText}>
+                  <Text style={[type.headline, { color: t.ink }]}>Add a watcher first</Text>
+                  <Text style={[type.footnote, { color: t.muted }]}>
+                    Confirm someone's number, then choose them for your photos.
+                  </Text>
                 </View>
-              </View>
+                <SymbolView
+                  name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+                  tintColor={t.muted}
+                  size={13}
+                />
+              </Pressable>
             )}
           </View>
         }
@@ -172,8 +205,18 @@ export default function Photos() {
             <ActivityIndicator color={t.muted} style={{ marginTop: 32 }} />
           ) : error ? undefined : (
             <View style={styles.empty}>
+              {/* A ghost of the grid, with the eye where the first photo will go. */}
+              <View style={styles.ghost} accessibilityElementsHidden importantForAccessibility="no">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <View key={i} style={[styles.ghostTile, { backgroundColor: t.fill }]}>
+                    {i === 0 ? <Mark size={30} color={t.muted} /> : null}
+                  </View>
+                ))}
+              </View>
+              <Text style={[type.title, { color: t.ink }]}>Keep a photo here</Text>
               <Text style={[type.callout, styles.emptyText, { color: t.muted }]}>
-                No photos yet. Upload one to start.
+                Photos you add stay inside Lookout. Choose who watches each one, and they get a
+                text if it's shared, saved or screenshotted.
               </Text>
               <Button title="Upload from camera roll" onPress={pick} />
             </View>
@@ -189,24 +232,39 @@ const styles = StyleSheet.create({
   grid: { gap: GAP, width: '100%', maxWidth: MAX_WIDTH, alignSelf: 'center', paddingBottom: 24 },
   add: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   notes: { paddingHorizontal: 20 },
-  hint: { paddingTop: 4, paddingBottom: 20 },
-  hintBody: { marginTop: 4 },
-  hintAction: { marginTop: 10, alignItems: 'flex-start' },
-  empty: { paddingHorizontal: 20, paddingTop: 8 },
-  emptyText: { marginBottom: 16 },
-  tag: {
+  hint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  hintText: { flex: 1, minWidth: 0, gap: 1 },
+  empty: { paddingHorizontal: 20, paddingTop: 12 },
+  emptyText: { marginTop: 6, marginBottom: 20 },
+  ghost: { flexDirection: 'row', flexWrap: 'wrap', gap: 3, marginBottom: 24, width: 3 * 72 + 6 },
+  ghostTile: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
+  shade: {
     position: 'absolute',
-    left: 5,
-    bottom: 5,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '40%',
+    experimental_backgroundImage: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.35))',
+  },
+  tileFoot: { position: 'absolute', left: 5, bottom: 5 },
+  unwatched: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     height: 20,
-    paddingHorizontal: 5,
-    borderRadius: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 6,
+    borderRadius: 10,
   },
-  tagText: { color: '#ffffff', fontSize: 11, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  unwatchedText: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
   lock: {
     position: 'absolute',
     right: 5,
