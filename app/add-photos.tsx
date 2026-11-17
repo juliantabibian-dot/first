@@ -1,13 +1,18 @@
 import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { Button, Choice, Divider, ErrorText, Group, TextButton } from '@/components/ui';
 import { haptic } from '@/lib/haptics';
 import { CAN_DELETE_ORIGINALS, deleteOriginals } from '@/lib/photoActions';
 import { usePhotos, type DownloadPolicy } from '@/lib/photos';
 import { type, useTheme } from '@/lib/theme';
+import { Text } from '@/components/Text';
 
 const OPTIONS: { value: DownloadPolicy; title: string; body: (many: boolean) => string }[] = [
   {

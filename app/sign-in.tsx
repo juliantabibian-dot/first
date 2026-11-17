@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { AuthScreen } from '@/components/AuthScreen';
 import { DemoNotice } from '@/components/DemoNotice';
@@ -7,6 +10,7 @@ import { Button, ErrorText, Field, TextButton } from '@/components/ui';
 import { formatPhone, toE164 } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
 import { type, useTheme } from '@/lib/theme';
+import { Text } from '@/components/Text';
 
 export default function SignIn() {
   const t = useTheme();

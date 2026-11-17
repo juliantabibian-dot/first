@@ -1,8 +1,12 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+} from 'react-native';
 
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
+import { Text } from '@/components/Text';
 
 function initials(name: string) {
   return name

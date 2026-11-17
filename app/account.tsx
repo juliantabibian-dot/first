@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { DemoNotice } from '@/components/DemoNotice';
 import { Avatar } from '@/components/people';
@@ -12,6 +16,7 @@ import { usePhotos } from '@/lib/photos';
 import { isDemo } from '@/lib/supabase';
 import { type, useTheme } from '@/lib/theme';
 import { callFunction, useWatchers } from '@/lib/watchers';
+import { Text } from '@/components/Text';
 
 const LIMITS = [
   'Lookout only knows about the copy of a photo inside the app. Once a photo is downloaded or shared, it is out of Lookout’s hands; that is why your watchers are told.',

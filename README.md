@@ -66,7 +66,9 @@ Where these differ from the handoff, these win.
   alerted" (and flags unwatched photos). Each watcher has a steady color and initials,
   shown on photo tiles, in the viewer, the picker and the Watchers list. The Texts tab is a
   log grouped by day with an icon per kind of text. Haptics on iPhone confirm saves,
-  confirmations and alerts. Palette, type scale and person colors: `lib/theme.ts`; shared
+  confirmations and alerts. The typeface is Schibsted Grotesk (`lib/fonts.ts`; every
+  screen uses the `Text` in `components/Text.tsx` so it applies everywhere). Palette, type
+  scale and person colors: `lib/theme.ts`; shared
   pieces: `components/ui.tsx` and `components/people.tsx`.
 - **Next, store readiness:** a hosted privacy policy (draft in
   `docs/privacy-policy.md`), then the launch steps: Apple developer program, an App Store

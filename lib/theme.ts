@@ -45,10 +45,10 @@ export function useTheme(): Palette {
   return useColorScheme() === 'dark' ? dark : light;
 }
 
-/** Type scale. Sizes follow iOS text styles so the app sits naturally on an iPhone. */
+/** Type scale. Sizes follow iOS text styles; the face is Schibsted Grotesk (see lib/fonts.ts). */
 export const type = {
-  largeTitle: { fontSize: 34, fontWeight: '700', letterSpacing: -0.6 },
-  title: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3 },
+  largeTitle: { fontSize: 34, fontWeight: '800', letterSpacing: -0.9 },
+  title: { fontSize: 23, fontWeight: '700', letterSpacing: -0.4 },
   headline: { fontSize: 17, fontWeight: '600' },
   body: { fontSize: 17, lineHeight: 22 },
   callout: { fontSize: 15, lineHeight: 20 },

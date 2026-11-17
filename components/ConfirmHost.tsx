@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { Button } from '@/components/ui';
 import { setConfirmHandler, type ConfirmRequest } from '@/lib/confirm';
 import { useTheme } from '@/lib/theme';
+import { Text } from '@/components/Text';
 
 /** The web version of the iPhone's confirmation alert. Mounted once, in the root layout. */
 export function ConfirmHost() {

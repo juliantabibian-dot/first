@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { type ColorValue } from 'react-native';
 
+import { fontFor } from '@/lib/fonts';
 import { hairline, useTheme } from '@/lib/theme';
 import { useWatchers } from '@/lib/watchers';
 
@@ -23,8 +24,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: t.ink,
         tabBarInactiveTintColor: t.muted,
         tabBarStyle: { backgroundColor: t.bg, borderTopColor: t.line, borderTopWidth: hairline },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
-        tabBarBadgeStyle: { backgroundColor: t.danger, color: '#ffffff', fontSize: 11 },
+        tabBarLabelStyle: { fontSize: 10, fontFamily: fontFor(500) },
+        tabBarBadgeStyle: { backgroundColor: t.danger, color: '#ffffff', fontSize: 11, fontFamily: fontFor(600) },
       }}>
       <Tabs.Screen
         name="index"

@@ -1,6 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { initials, personColor, useTheme } from '@/lib/theme';
+import { Text } from '@/components/Text';
 
 /** A watcher's initials on their own color. */
 export function Avatar({ name, size = 36, ring }: { name: string; size?: number; ring?: string }) {

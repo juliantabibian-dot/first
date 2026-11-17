@@ -1,7 +1,11 @@
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { isDemo } from '@/lib/supabase';
 import { hairline, type, useTheme } from '@/lib/theme';
+import { Text } from '@/components/Text';
 
 /** Shown only in the demo version, which has no server behind it. */
 export function DemoNotice({ children }: { children: string }) {

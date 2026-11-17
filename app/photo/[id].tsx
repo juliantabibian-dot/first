@@ -3,7 +3,13 @@ import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvatarStack, joinNames } from '@/components/people';
@@ -15,6 +21,7 @@ import { ACTIONS_ARE_SIMULATED, saveToCameraRoll, shareOut } from '@/lib/photoAc
 import { usePhotos } from '@/lib/photos';
 import { addedOn } from '@/lib/time';
 import { useWatchers } from '@/lib/watchers';
+import { Text } from '@/components/Text';
 
 type Busy = 'share' | 'download' | 'delete' | null;
 

@@ -1,6 +1,10 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { Button, Choice, Divider, ErrorText, Group, NoteText, TextButton } from '@/components/ui';
 import { Avatar } from '@/components/people';
@@ -9,6 +13,7 @@ import { formatPhone } from '@/lib/phone';
 import { usePhotos } from '@/lib/photos';
 import { type, useTheme } from '@/lib/theme';
 import { useWatchers } from '@/lib/watchers';
+import { Text } from '@/components/Text';
 
 /**
  * Choose who watches one photo, or a batch that was just uploaded.

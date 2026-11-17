@@ -3,8 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
-  TextInput,
   View,
   type TextInputProps,
   type ViewStyle,
@@ -13,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptic } from '@/lib/haptics';
 import { hairline, type, useTheme } from '@/lib/theme';
+import { Text, TextInput } from '@/components/Text';
 
 type ButtonProps = {
   title: string;

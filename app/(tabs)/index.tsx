@@ -9,7 +9,6 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -21,6 +20,7 @@ import { usePhotoShield } from '@/lib/capture';
 import { usePhotos, type Photo } from '@/lib/photos';
 import { type, useTheme } from '@/lib/theme';
 import { useWatchers } from '@/lib/watchers';
+import { Text } from '@/components/Text';
 
 const COLUMNS = 3;
 const GAP = 2;

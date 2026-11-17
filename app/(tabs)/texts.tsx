@@ -6,7 +6,6 @@ import {
   RefreshControl,
   SectionList,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 
@@ -17,6 +16,7 @@ import { formatPhone } from '@/lib/phone';
 import { isDemo, supabase } from '@/lib/supabase';
 import { type Palette, type, useTheme } from '@/lib/theme';
 import { clock, dayLabel } from '@/lib/time';
+import { Text } from '@/components/Text';
 
 type SentText = {
   id: string;
@@ -82,7 +82,7 @@ function TextRow({ item, t }: { item: SentText; t: Palette }) {
             accessibilityLabel={`to ${item.watcher_name}, ${formatPhone(item.watcher_phone)}`}>
             to <Text style={{ color: t.ink, fontWeight: '600' }}>{item.watcher_name}</Text>
           </Text>
-          <Text style={[type.footnote, styles.time, { color: t.muted }]}>{clock(item.created_at)}</Text>
+          <Text style={[type.footnote, { color: t.muted }]}>{clock(item.created_at)}</Text>
         </View>
         <View style={[styles.bubble, { backgroundColor: t.bubble }]}>
           <Text style={[type.callout, { color: t.ink }]}>{item.body}</Text>
@@ -201,7 +201,6 @@ const styles = StyleSheet.create({
   to: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   kind: { fontWeight: '600' },
   toText: { flex: 1, fontVariant: ['tabular-nums'] },
-  time: { fontVariant: ['tabular-nums'] },
   bubble: {
     alignSelf: 'flex-start',
     maxWidth: '100%',

@@ -1,8 +1,15 @@
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Mark } from '@/components/ui';
 import { type, useTheme } from '@/lib/theme';
+import { Text } from '@/components/Text';
 
 /** Shared frame for the signed-out screens: the mark, a title, one line of copy, then the form. */
 export function AuthScreen({

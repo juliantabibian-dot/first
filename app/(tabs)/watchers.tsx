@@ -7,8 +7,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -30,6 +28,7 @@ import { formatPhone, toE164 } from '@/lib/phone';
 import { usePhotos } from '@/lib/photos';
 import { type, useTheme } from '@/lib/theme';
 import { useWatchers, type Watcher } from '@/lib/watchers';
+import { Text, TextInput } from '@/components/Text';
 
 /** A line under a form or row: what just happened, or why it didn't. */
 type Note = { kind: 'ok' | 'error'; text: string } | null;

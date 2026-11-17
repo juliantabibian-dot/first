@@ -4,9 +4,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
+import { useFonts } from 'expo-font';
+
 import { ConfirmHost } from '@/components/ConfirmHost';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { useAppSwitcherBlur } from '@/lib/capture';
+import { FONT_FILES, fontFor } from '@/lib/fonts';
 import { useTheme } from '@/lib/theme';
 import { PhotosProvider } from '@/lib/photos';
 import { WatchersProvider } from '@/lib/watchers';
@@ -32,11 +35,15 @@ function RootNav() {
   const { loading, session, profile } = useAuth();
   useAppSwitcherBlur();
 
-  useEffect(() => {
-    if (!loading) SplashScreen.hideAsync();
-  }, [loading]);
+  // If the font can't load for some reason, carry on in the system font.
+  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
+  const ready = !loading && (fontsLoaded || Boolean(fontError));
 
-  if (loading) return null;
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
 
   // React Navigation paints its own backgrounds and borders; match them to the palette.
   const base = t.bg === '#000000' ? DarkTheme : DefaultTheme;
@@ -46,7 +53,7 @@ function RootNav() {
   };
 
   const signedIn = Boolean(session);
-  const ready = signedIn && Boolean(profile);
+  const inApp = signedIn && Boolean(profile);
 
   return (
     <ThemeProvider value={navTheme}>
@@ -56,7 +63,7 @@ function RootNav() {
           headerShadowVisible: false,
           headerStyle: { backgroundColor: t.bg },
           headerTintColor: t.ink,
-          headerTitleStyle: { fontWeight: '600' },
+          headerTitleStyle: { fontFamily: fontFor(600) },
           contentStyle: { backgroundColor: t.bg },
         }}>
         <Stack.Protected guard={!signedIn}>
@@ -65,7 +72,7 @@ function RootNav() {
         <Stack.Protected guard={signedIn && !profile}>
           <Stack.Screen name="welcome" />
         </Stack.Protected>
-        <Stack.Protected guard={ready}>
+        <Stack.Protected guard={inApp}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="account"
